@@ -233,7 +233,6 @@ export const WallpaperCastle: FC<WProps> = ({ className }) => (
     <CloudBand y={540} fill="#4a4f94" opacity={0.18} blocks={[[0,0,320,26],[280,10,300,22],[560,-4,320,26],[820,8,260,20]]} />
     <CloudBand y={590} fill="#5a5fa6" opacity={0.16} blocks={[[120,0,360,24],[480,8,360,22],[820,-2,260,20]]} />
 
-    {/* global pixel texture + gentle vignette */}
     <rect width="1024" height="640" fill="url(#px)" />
     <rect width="1024" height="640" fill="url(#castle-vig)" />
   </Scene>
