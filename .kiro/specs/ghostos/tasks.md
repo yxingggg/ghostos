@@ -174,41 +174,41 @@
     or the sandbox); provider request/response/error logic is covered by unit tests only.
   - _Requirements: 10_
 
-- [ ] 21. GraveNotes ↔ Tomb Explorer file-save integration (reported bug)
+- [x] 21. GraveNotes ↔ Tomb Explorer file-save integration (reported bug)
   - Root cause: GraveNotes standalone documents lived only in notesStore and were never
     written to the virtual filesystem, so they never appeared in Tomb Explorer. The gap
     was integration between notesStore and vfsStore, not IndexedDB persistence.
-  - [ ] 21.1 GraveNotes File menu (New, Open, Save, Save As, Close) over real VFS files;
+  - [x] 21.1 GraveNotes File menu (New, Open, Save, Save As, Close) over real VFS files;
     legacy quick notes kept with a "Save as File" promotion. _Requirements: 6b.1, 6b.6, 6b.12_
-  - [ ] 21.2 SaveAsDialog: name + `.txt`/`.md` extension + destination folder; duplicate
+  - [x] 21.2 SaveAsDialog: name + `.txt`/`.md` extension + destination folder; duplicate
     handling with overwrite confirmation (no duplicate copies). _Requirements: 6b.3, 6b.7_
-  - [ ] 21.3 Bind editor to the created/opened file id; subsequent saves update the same
+  - [x] 21.3 Bind editor to the created/opened file id; subsequent saves update the same
     file; files appear in Explorer immediately. _Requirements: 6b.2, 6b.4, 6b.11_
-  - [ ] 21.4 Robust save controller: Ctrl/Cmd+S (prevent browser dialog), real
+  - [x] 21.4 Robust save controller: Ctrl/Cmd+S (prevent browser dialog), real
     Unsaved/Saving/Saved/Save-failed status from actual persistence results, monotonic
     version guard against stale autosave, flush on close. _Requirements: 6b.5, 6b.8–6b.10_
-  - [ ] 21.5 persist.saveSlice/putContent return durability; vfsStore.writeText returns a
+  - [x] 21.5 persist.saveSlice/putContent return durability; vfsStore.writeText returns a
     result and preserves the file's MIME; added saveTextAs and folders selectors.
-  - [ ] 21.6 Tests: unit (saveTextAs/durability), integration (acceptance workflow:
+  - [x] 21.6 Tests: unit (saveTextAs/durability), integration (acceptance workflow:
     new → type → Save As → appears in VFS → reopen → edit → save → persists;
     Ctrl+S opens Save As; Open dialog; Save-failed indicator), plus Playwright e2e.
     _Requirements: 15.3_
   - No IndexedDB reset; existing notes preserved; registry-driven (no WM branching).
   - _Requirements: 6b_
 
-- [ ] 22. Gemini default model → gemini-3-flash-preview
+- [x] 22. Gemini default model → gemini-3-flash-preview
   - Update the Gemini preset default model; keep the model field editable; don't overwrite
     a user-configured model without an explicit provider switch; update tests/placeholders.
   - _Requirements: 10.4_
 
-- [ ] 23. Responsive window content (Tomb Explorer header clipping)
+- [x] 23. Responsive window content (Tomb Explorer header clipping)
   - Shared `ui/Toolbar` with ResizeObserver-based overflow (⋯) menu; Explorer uses it;
     breadcrumb scrolls; terminal prompt truncates; app roots use `min-h-0` flex columns so
     content scrolls independently and controls are never clipped. Toolbar unit test +
     Playwright viewport check. Audited all apps.
   - _Requirements: 12.3 (responsive), 4 (shell)_
 
-- [ ] 24. DeadWave usability + original demo tracks
+- [x] 24. DeadWave usability + original demo tracks
   - Prominent Import Audio, drag-and-drop, VFS-open integration, empty state, playlist,
     play/pause/stop/prev/next/seek/volume/mute/repeat, elapsed/duration/filename, autoplay
     handling, unsupported/corrupted messaging, object-URL cleanup.
@@ -217,9 +217,18 @@
     autoplayed; no external/streamed/copyrighted audio. Unit tests for encoder + tracks.
   - _Requirements: 9_
 
-- [ ] 25. Playwright end-to-end browser tests
+- [x] 25. Playwright end-to-end browser tests
   - `e2e/ghostos.spec.ts` covering the create→open→edit→save→reload→persist workflow,
     GraveNotes Save As → appears in Explorer, Explorer resize control visibility, DeadWave
     demo playback, and Offline Spirit without credentials. Dedicated CI job installs
     Chromium. NOT claimed to pass until an Actions run executes it.
   - _Requirements: 15.3, 15.5_
+
+> Verification (CI run on commit ed4fb38): build-and-test green — 160 unit/integration/
+> property tests across 20 files, type-check, lint, production build; e2e job green — 5
+> Playwright tests passed in real Chromium (create→open→edit→save→reload→persist;
+> GraveNotes Save As → file appears in Tomb Explorer; Explorer resize keeps controls in
+> bounds; DeadWave plays an original demo track after a click; Offline Spirit answers with
+> no credentials). Deploy workflow green; github-pages deployment state=success at
+> https://yxingggg.github.io/ghostos/. Live in-browser use beyond these scripted e2e flows
+> was not manually exercised from this environment.
