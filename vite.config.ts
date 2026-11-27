@@ -40,7 +40,7 @@ export default defineConfig({
       },
       workbox: {
         // Precache the built app shell and assets so GhostOS works fully offline.
-        globPatterns: ['**/*.{js,css,html,svg,woff2,png,ico}'],
+        globPatterns: ['**/*.{js,css,html,svg,woff2,png,webp,jpg,jpeg,ico}'],
         navigateFallback: `${base}index.html`,
         cleanupOutdatedCaches: true,
       },
