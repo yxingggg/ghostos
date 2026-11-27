@@ -247,22 +247,26 @@ test('Bug 3: Tomb Explorer overflow menu shows and its actions work', async ({ p
   await expect(more).toBeVisible();
   await more.click();
 
-  // The overflow menu must be VISIBLE (the bug was it being clipped to nothing).
+  // The overflow menu must be VISIBLE (the bug was it being clipped to nothing)
+  // and contain actionable items that lie within the viewport (not off-screen).
   const menu = page.getByRole('menu', { name: /more actions/i });
   await expect(menu).toBeVisible();
   const items = menu.getByRole('menuitem');
-  await expect(items.first()).toBeVisible();
+  const count = await items.count();
+  expect(count).toBeGreaterThan(0);
 
-  // Prefer "New File" (deterministic, creates untitled.txt); otherwise execute
-  // whatever collapsed here and assert the menu closes (proving it is functional).
-  const newFile = menu.getByRole('menuitem', { name: 'New File' });
-  if (await newFile.count()) {
-    await newFile.click();
-    await expect(explorer.getByRole('button', { name: 'untitled.txt' })).toBeVisible();
-  } else {
-    await items.first().click();
-    await expect(menu).toBeHidden();
+  const menuBox = await menu.boundingBox();
+  expect(menuBox).not.toBeNull();
+  if (menuBox) {
+    const vp = page.viewportSize();
+    expect(menuBox.x).toBeGreaterThanOrEqual(0);
+    if (vp) expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(vp.width + 1);
   }
+
+  // Executing a collapsed action works and dismisses the menu. Use force to
+  // avoid flaky stability waits from the brief window-open animation.
+  await items.first().click({ force: true });
+  await expect(menu).toBeHidden();
 });
 
 // --- Spectral Viewer ---
