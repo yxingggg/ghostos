@@ -104,12 +104,18 @@
     emitted. Scripts documented in the README and wired into `.github/workflows/ci.yml`.
   - _Requirements: 15.1, 15.5_
 
-- [ ] 18. Live GitHub Pages deployment (BLOCKED — owner action required)
-  - The deploy workflow's quality gate, build, and artifact upload all pass; the final
-    `actions/deploy-pages` step fails with HTTP 404 "Ensure GitHub Pages has been enabled."
-  - The authorized integration token cannot change repository Pages settings (API returns
-    403 on enabling Pages), so this requires the repo owner to enable it:
-    **Settings → Pages → Build and deployment → Source: "GitHub Actions"**, then re-run the
-    "Deploy to GitHub Pages" workflow.
-  - Expected live URL after enablement: https://yxingggg.github.io/ghostos/
+- [x] 18. Live GitHub Pages deployment
+  - Owner enabled Pages (Source: "GitHub Actions"). The Deploy workflow (run 45956462745,
+    commit 8990bf4) completed with all jobs green: quality ✅, build ✅, deploy ✅.
+  - GitHub's deployment record for the `github-pages` environment reports
+    `state: success` with `environment_url: https://yxingggg.github.io/ghostos/`.
+  - The deployed artifact was inspected and is correct: every `index.html` reference is
+    prefixed with `/ghostos/` (JS, CSS, favicon SVG, manifest, registerSW); the manifest
+    uses `start_url`/`scope` = `/ghostos/`; the service worker registers at `/ghostos/sw.js`
+    with scope `/ghostos/` and precaches `/ghostos/index.html`.
+  - NOT verified from here: the authoring sandbox is `INTEGRATIONS_ONLY` and cannot reach
+    `github.io`, and no browser testing tool can reach it either, so the live HTTP 200
+    response, in-browser rendering, console-error state, and runtime
+    persistence/offline behavior were NOT tested by execution. They should be confirmed
+    manually in a browser at https://yxingggg.github.io/ghostos/.
   - _Requirements: 14.1–14.3_

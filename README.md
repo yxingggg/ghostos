@@ -28,11 +28,14 @@ GhostOS is **feature-complete and verified by CI**. The GitHub Actions
 | Test (Vitest) | ✅ **88 tests, 10 files** (incl. WM & VFS property-based) |
 | Production build (Vite) | ✅ bundle + service worker emitted |
 
-The one item **not yet verified** is the *live* GitHub Pages deployment: the deploy
-workflow's quality gate, build, and artifact upload pass, but the final publish step is
-blocked until the repository owner enables Pages (**Settings → Pages → Source: "GitHub
-Actions"**). Everything else is confirmed by execution, not just written. See
-[Limitations](#limitations-and-remaining-verification).
+**Deployment:** the Deploy workflow runs green (quality gate, build, artifact upload, and
+the `deploy-pages` publish job), and GitHub's deployment record for the `github-pages`
+environment reports `state: success` at **https://yxingggg.github.io/ghostos/**. The
+deployed artifact was inspected and all assets are correctly served under the `/ghostos/`
+base path (JS, CSS, SVG icons, PWA manifest, service worker). The **live in-browser
+behavior** (HTTP 200 render, console-error state, runtime persistence/offline) was **not**
+verified from the authoring environment — it has no outbound access to `github.io` — so
+confirm it in a browser. See [Limitations](#limitations-and-remaining-verification).
 
 ---
 
@@ -141,8 +144,12 @@ The full requirements, design, and task breakdown live in
 The production build is a static bundle in `dist/`, deployable to any static host.
 
 - **GitHub Pages** — the included [`deploy.yml`](.github/workflows/deploy.yml) workflow
-  builds with `GHOSTOS_BASE=/ghostos/` and publishes to Pages. Set `GHOSTOS_BASE` to match
-  your repository's sub-path (or `/` for a root deployment on Netlify/Vercel/etc.).
+  builds with `GHOSTOS_BASE=/ghostos/` and publishes to **https://yxingggg.github.io/ghostos/**.
+  Set `GHOSTOS_BASE` to match your repository's sub-path (or `/` for a root deployment on
+  Netlify/Vercel/etc.).
+
+See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for the full pipeline, verification status,
+and a manual in-browser confirmation checklist.
 
 ## Privacy & offline
 
@@ -161,11 +168,15 @@ proprietary branding, logos, startup sounds, or wallpapers.
 Honest status of what has and hasn't been confirmed:
 
 - **Verified by CI, not in the authoring sandbox.** The authoring environment had no npm
-  registry access, so the suite/build were first executed by GitHub Actions on push. CI
-  is green (install, type-check, lint, 88 tests, production build). The **live Pages
-  deployment is not yet verified** — it is blocked on the owner enabling GitHub Pages
-  (Settings → Pages → Source: "GitHub Actions"), after which the deploy workflow publishes
-  to https://yxingggg.github.io/ghostos/.
+  registry or general internet access, so the suite/build were executed by GitHub Actions.
+  CI is green (install via `npm ci`, type-check, lint, 88 tests, production build), and the
+  Pages deployment job succeeded (deployment record `state: success`).
+- **Live browser behavior is NOT yet verified.** The authoring environment cannot reach
+  `github.io`, so the live site's HTTP response, in-browser rendering, console errors, and
+  runtime persistence/offline behavior were not tested by execution. The deployed *artifact*
+  was inspected and is correct (all assets base-pathed to `/ghostos/`, valid PWA manifest
+  and service worker), but please confirm the running app at
+  https://yxingggg.github.io/ghostos/ in a browser.
 - **`package-lock.json` is committed** (generated in CI via the
   [generate-lockfile workflow](.github/workflows/generate-lockfile.yml)), so installs are
   reproducible and CI uses `npm ci`.
