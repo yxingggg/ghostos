@@ -60,10 +60,13 @@ export function validateBackup(value: unknown): ValidateResult {
     return { ok: false, error: 'Backup is missing its "content" section.' };
   }
   // Every content entry must be a string (base64/`str:`/legacy `blob:` form).
+  // Build a typed copy as we validate so the result type is proven, not asserted.
+  const content: Record<string, string> = {};
   for (const [k, v] of Object.entries(value.content)) {
     if (typeof v !== 'string') {
       return { ok: false, error: `Backup content entry "${k}" is corrupt (not a string).` };
     }
+    content[k] = v;
   }
   // If a recognized slice is present, it must be a non-null object. (vfs in
   // particular must look like a node tree; a primitive here would corrupt state.)
@@ -87,7 +90,7 @@ export function validateBackup(value: unknown): ValidateResult {
   const backup: BackupFile = {
     version,
     kv: value.kv,
-    content: value.content,
+    content,
     ...(isValidMeta(value.meta) ? { meta: value.meta } : {}),
   };
   return { ok: true, backup };

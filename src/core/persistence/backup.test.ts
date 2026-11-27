@@ -58,7 +58,7 @@ describe('validateBackup', () => {
     if (res.ok) expect(res.backup.meta).toBeUndefined();
   });
 
-  it.each([
+  const malformed: ReadonlyArray<readonly [unknown, string]> = [
     [null, 'non-object'],
     [42, 'number'],
     ['nope', 'string'],
@@ -67,7 +67,8 @@ describe('validateBackup', () => {
     [{ kv: { settings: {} }, content: [] }, 'content not an object'],
     [{ content: {} }, 'missing kv'],
     [{ kv: { settings: {} } }, 'missing content'],
-  ])('rejects malformed input (%s) before any mutation', (input) => {
+  ];
+  it.each(malformed)('rejects malformed input (%s) before any mutation', (input) => {
     const res = validateBackup(input);
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toMatch(/\S/);
