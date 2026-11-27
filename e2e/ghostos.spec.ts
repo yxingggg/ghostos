@@ -7,6 +7,13 @@ async function boot(page: Page): Promise<void> {
   await page.goto('/');
   // The boot sequence runs, then the desktop appears. Wait for a desktop icon.
   await expect(page.getByRole('grid', { name: /desktop icons/i })).toBeVisible({ timeout: 20_000 });
+  // On first launch a welcome modal overlays the desktop; dismiss it so the
+  // rest of the flow can interact with the desktop. (The visual test opts out.)
+  const welcome = page.getByRole('dialog', { name: /welcome to ghostos/i });
+  if (await welcome.count()) {
+    await welcome.getByRole('button', { name: /enter ghostos/i }).click();
+    await expect(welcome).toBeHidden();
+  }
 }
 
 async function launch(page: Page, appName: string): Promise<void> {
@@ -290,7 +297,9 @@ test('Spectral Viewer: load the original sample image, then zoom and rotate', as
 // --- Visual polish: capture screenshots of key surfaces ---
 
 test('visual: capture branded desktop, start menu, and windows', async ({ page }, testInfo) => {
-  await boot(page);
+  // Don't use boot() here — we want to capture the first-launch welcome first.
+  await page.goto('/');
+  await expect(page.getByRole('grid', { name: /desktop icons/i })).toBeVisible({ timeout: 20_000 });
 
   // First-launch welcome appears with branding; capture, then enter.
   const welcome = page.getByRole('dialog', { name: /welcome to ghostos/i });
@@ -298,6 +307,7 @@ test('visual: capture branded desktop, start menu, and windows', async ({ page }
     await expect(welcome).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath('01-welcome.png') });
     await welcome.getByRole('button', { name: /enter ghostos/i }).click();
+    await expect(welcome).toBeHidden();
   }
 
   // Desktop with colourful icons.
