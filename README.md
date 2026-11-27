@@ -275,6 +275,15 @@ third-party icon packs. Provenance of what ships:
   [`src/assets/wallpapers/README.md`](src/assets/wallpapers/README.md) for the full
   provenance note.
 
+**External audio used only for testing (not shipped).** During development, DeadWave's
+local-file playback and import were manually tested with an external track, *"Flow
+Electric"* by **1000 Handz**. This track is **not** included in the repository, **not**
+tracked in git, and **not** bundled or precached in the build — the PWA precache lists no
+audio file types, and the only audio GhostOS distributes is the runtime-synthesized demo
+tracks and sound effects above. All rights to *"Flow Electric"* belong to its creator;
+GhostOS claims **no ownership and no licensing rights** to it and merely credits it as a
+test input. To reproduce the test, supply your own audio file via DeadWave's Import button.
+
 ## Limitations and remaining verification
 
 Honest status of what has and hasn't been confirmed:
