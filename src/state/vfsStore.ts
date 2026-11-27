@@ -13,6 +13,7 @@ import {
 } from '../core/vfs/ops';
 import type { NodeId, VfsNode, VfsState } from '../core/vfs/types';
 import {
+  blobToArrayBuffer,
   deleteContent,
   getContent,
   loadSlice,
@@ -119,7 +120,6 @@ export const useVfs = create<VfsStore>((set, get) => ({
     const raw = await getContent(node.contentId);
     if (typeof raw === 'string') return raw;
     if (raw instanceof ArrayBuffer) return new TextDecoder().decode(raw);
-    if (raw instanceof Blob) return await raw.text();
     return '';
   },
   writeText: async (id, content) => {
@@ -192,7 +192,7 @@ export const useVfs = create<VfsStore>((set, get) => ({
       useToasts.getState().push(r.error, 'error');
       return null;
     }
-    await putContent(contentId, blob);
+    await putContent(contentId, await blobToArrayBuffer(blob));
     set({ vfs: r.value });
     persist(r.value);
     return id;

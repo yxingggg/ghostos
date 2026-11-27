@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 import { createId } from '../core/id';
-import { deleteContent, getContent, loadSlice, putContent, saveSlice } from './persist';
+import {
+  blobToArrayBuffer,
+  deleteContent,
+  getContent,
+  loadSlice,
+  putContent,
+  saveSlice,
+} from './persist';
 
 export interface Track {
   id: string;
@@ -41,7 +48,7 @@ export const useMusic = create<MusicStore>((set, get) => ({
   },
   addTrack: async (name, blob) => {
     const contentId = createId('audio');
-    await putContent(contentId, blob);
+    await putContent(contentId, await blobToArrayBuffer(blob));
     const track: Track = {
       id: createId('track'),
       name,
@@ -66,10 +73,10 @@ export const useMusic = create<MusicStore>((set, get) => ({
     const track = get().tracks.find((t) => t.id === id);
     if (!track) return null;
     const raw = await getContent(track.contentId);
-    let blob: Blob;
-    if (raw instanceof Blob) blob = raw;
-    else if (raw instanceof ArrayBuffer) blob = new Blob([raw], { type: track.mime });
-    else return null;
+    // Content is stored as ArrayBuffer; rebuild a typed Blob from the track's
+    // retained MIME so the <audio> element can play it.
+    if (!(raw instanceof ArrayBuffer)) return null;
+    const blob = new Blob([raw], { type: track.mime });
     return URL.createObjectURL(blob);
   },
   select: (id) => set({ currentId: id }),

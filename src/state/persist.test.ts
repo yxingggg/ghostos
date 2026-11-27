@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   __resetPersistenceForTests,
+  blobToArrayBuffer,
   exportAll,
   getContent,
   importAll,
@@ -62,8 +63,9 @@ describe('persistence (fake-indexeddb)', () => {
     // This test asserts the raw bytes survive a full export/import cycle for
     // both empty and non-empty source MIME types.
     const bytes = new Uint8Array([9, 8, 7, 255, 0]);
-    await putContent('blobEmptyMime', new Blob([bytes], { type: '' }));
-    await putContent('blobTyped', new Blob([bytes], { type: 'audio/mpeg' }));
+    // Callers convert Blobs to ArrayBuffer before storage (as the stores do).
+    await putContent('blobEmptyMime', await blobToArrayBuffer(new Blob([bytes], { type: '' })));
+    await putContent('blobTyped', await blobToArrayBuffer(new Blob([bytes], { type: 'audio/mpeg' })));
     const dump = await exportAll();
 
     await __resetPersistenceForTests();

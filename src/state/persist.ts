@@ -17,9 +17,15 @@ export type SliceName =
   | 'music'
   | 'wm-layout';
 
+// Content is stored only as ArrayBuffer (binary) or string (text). Blobs are
+// converted to ArrayBuffer by callers before storage, because Blobs do not
+// round-trip reliably across all IndexedDB implementations. Callers that need a
+// Blob reconstruct one from their own retained MIME type.
+type StoredContent = ArrayBuffer | string;
+
 interface GhostDB {
   kv: Map<string, unknown>;
-  content: Map<string, Blob | ArrayBuffer | string>;
+  content: Map<string, StoredContent>;
 }
 
 // In-memory fallback store used when IndexedDB is unavailable.
@@ -91,34 +97,38 @@ export async function saveSlice<T>(name: SliceName, value: T): Promise<void> {
 
 export async function getContent(
   id: string,
-): Promise<Blob | ArrayBuffer | string | undefined> {
+): Promise<StoredContent | undefined> {
   try {
     const db = await getDB();
     if (!db) return memory.content.get(id);
-    return (await db.get(CONTENT_STORE, id)) as Blob | ArrayBuffer | string | undefined;
+    return (await db.get(CONTENT_STORE, id)) as StoredContent | undefined;
   } catch (e) {
     markDegraded(e instanceof Error ? e.message : 'read failed');
     return memory.content.get(id);
   }
 }
 
-export async function putContent(
-  id: string,
-  value: Blob | ArrayBuffer | string,
-): Promise<void> {
-  // Normalize Blobs to ArrayBuffer before storing. Blobs do not round-trip
-  // reliably through every IndexedDB implementation (notably fake-indexeddb
-  // under jsdom), and callers that need a Blob (the music player) reconstruct
-  // one from their own retained MIME type. Strings and buffers are stored as-is.
-  const toStore = isBlobLike(value) ? await blobToArrayBuffer(value) : value;
-  memory.content.set(id, toStore);
+export async function putContent(id: string, value: StoredContent): Promise<void> {
+  memory.content.set(id, value);
   try {
     const db = await getDB();
     if (!db) return;
-    await db.put(CONTENT_STORE, toStore, id);
+    await db.put(CONTENT_STORE, value, id);
   } catch (e) {
     markDegraded(e instanceof Error ? e.message : 'write failed');
   }
+}
+
+/** Read a Blob's bytes portably (jsdom's Blob historically lacks arrayBuffer). */
+export async function blobToArrayBuffer(blob: Blob): Promise<ArrayBuffer> {
+  if (typeof blob.arrayBuffer === 'function') return blob.arrayBuffer();
+  if (typeof Response !== 'undefined') return new Response(blob).arrayBuffer();
+  return new Promise<ArrayBuffer>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as ArrayBuffer);
+    reader.onerror = () => reject(reader.error ?? new Error('read failed'));
+    reader.readAsArrayBuffer(blob);
+  });
 }
 
 export async function deleteContent(id: string): Promise<void> {
@@ -147,11 +157,11 @@ export async function exportAll(): Promise<{
     }
     for (const key of await db.getAllKeys(CONTENT_STORE)) {
       const value = await db.get(CONTENT_STORE, key);
-      content[String(key)] = await serializeContent(value);
+      content[String(key)] = serializeContent(value);
     }
   } else {
     for (const [k, v] of memory.kv) kv[k] = v;
-    for (const [k, v] of memory.content) content[k] = await serializeContent(v);
+    for (const [k, v] of memory.content) content[k] = serializeContent(v);
   }
   return { version: DB_VERSION, kv, content };
 }
@@ -173,76 +183,37 @@ export async function importAll(data: {
   }
 }
 
-// Detect binary shapes by structural tag rather than `instanceof`, because a
-// storage engine can return values from a different realm (e.g. Node/jsdom +
-// fake-indexeddb) where `instanceof ArrayBuffer`/`Blob` is false even though
-// the value is one.
-function tagOf(value: unknown): string {
-  return Object.prototype.toString.call(value);
-}
-function isBlobLike(value: unknown): value is Blob {
-  return (
-    tagOf(value) === '[object Blob]' ||
-    (typeof value === 'object' &&
-      value !== null &&
-      typeof (value as { arrayBuffer?: unknown }).arrayBuffer === 'function' &&
-      typeof (value as { type?: unknown }).type === 'string')
-  );
-}
+// Classify binary by structural tag rather than `instanceof`, because a storage
+// engine can return values from a different realm (e.g. Node/jsdom +
+// fake-indexeddb) where `instanceof ArrayBuffer` is false even though the value
+// is one.
 function isArrayBufferLike(value: unknown): value is ArrayBuffer {
-  return tagOf(value) === '[object ArrayBuffer]';
+  return Object.prototype.toString.call(value) === '[object ArrayBuffer]';
 }
 
-/**
- * Read a Blob's bytes portably. jsdom's Blob historically lacks arrayBuffer(),
- * so fall back to the Response wrapper, then to a FileReader, so this works in
- * browsers and the jsdom test environment alike.
- */
-async function blobToArrayBuffer(blob: Blob): Promise<ArrayBuffer> {
-  if (typeof blob.arrayBuffer === 'function') return blob.arrayBuffer();
-  if (typeof Response !== 'undefined') return new Response(blob).arrayBuffer();
-  return new Promise<ArrayBuffer>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as ArrayBuffer);
-    reader.onerror = () => reject(reader.error ?? new Error('read failed'));
-    reader.readAsArrayBuffer(blob);
-  });
-}
-
-async function serializeContent(value: unknown): Promise<string> {
-  // Encode blobs/buffers as base64 data so export is pure JSON.
+function serializeContent(value: unknown): string {
+  // Content is only ever a string or ArrayBuffer (Blobs are converted before
+  // storage). Encode binary as base64 so export is pure JSON.
   if (typeof value === 'string') return `str:${value}`;
   if (isArrayBufferLike(value)) return `b64:${bufferToBase64(value as ArrayBuffer)}`;
-  // Some storage engines (and Node/fake-indexeddb) may return a typed-array
-  // view or Node Buffer rather than a raw ArrayBuffer.
+  // Defensive: a typed-array view or Node Buffer from the storage engine.
   if (ArrayBuffer.isView(value)) {
     const view = value as ArrayBufferView;
-    const slice = view.buffer.slice(
-      view.byteOffset,
-      view.byteOffset + view.byteLength,
-    );
+    const slice = view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength);
     return `b64:${bufferToBase64(slice)}`;
-  }
-  if (isBlobLike(value)) {
-    const buf = await blobToArrayBuffer(value);
-    return `blob:${value.type}:${bufferToBase64(buf)}`;
   }
   return 'str:';
 }
 
-function deserializeContent(value: string): Blob | ArrayBuffer | string {
+function deserializeContent(value: string): ArrayBuffer | string {
   if (value.startsWith('str:')) return value.slice(4);
   if (value.startsWith('b64:')) return base64ToBuffer(value.slice(4));
+  // Legacy `blob:<mime>:<base64>` form (older exports): decode to bytes and drop
+  // the MIME, which this layer does not track. The first colon ends the MIME.
   if (value.startsWith('blob:')) {
     const rest = value.slice(5);
-    // Format is `blob:<mime>:<base64>`. MIME never contains ':' and base64 never
-    // contains ':', so the first colon unambiguously ends the (possibly empty)
-    // MIME type. Guard a malformed string with no colon.
     const sep = rest.indexOf(':');
-    if (sep === -1) return new Blob([base64ToBuffer(rest)]);
-    const type = rest.slice(0, sep);
-    const buf = base64ToBuffer(rest.slice(sep + 1));
-    return new Blob([buf], { type });
+    return base64ToBuffer(sep === -1 ? rest : rest.slice(sep + 1));
   }
   return value;
 }
