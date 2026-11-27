@@ -43,6 +43,11 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,woff2,png,webp,jpg,jpeg,ico}'],
         navigateFallback: `${base}index.html`,
         cleanupOutdatedCaches: true,
+        // Activate a new build immediately and take control of already-open tabs,
+        // so a redeploy never serves a stale/mixed bundle (e.g. new welcome but
+        // old Settings). Paired with registerType:'autoUpdate' above.
+        skipWaiting: true,
+        clientsClaim: true,
       },
     }),
   ],

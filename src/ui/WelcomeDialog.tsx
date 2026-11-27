@@ -12,13 +12,13 @@ interface Props {
 
 const README_BODY = `Welcome to GhostOS — a haunted retro-futuristic desktop in your browser.
 
-Everything here runs offline and your work is saved locally (no account, no server).
+Every core feature works without a network, and your work is saved locally (no account, no server). The only part that uses the internet is the optional online AI, which you turn on yourself.
 
 Try this:
   • Open Tomb Explorer to browse your files.
   • Open a .txt or .md file to edit it in GraveNotes (Save As makes new files).
   • Launch DeadWave and press a demo track to hear original synth music.
-  • Ask the Spirit Assistant for help — it works offline.
+  • Ask the Spirit Assistant for help — its built-in help mode works offline.
 
 Your desktop and files are restored automatically each visit via Ghost Memory.`;
 
@@ -102,16 +102,20 @@ export function WelcomeDialog({ onOpenApp }: Props) {
             a WELCOME note, a Markdown scratchpad, and an image.
           </p>
           <p className="mb-4 font-pixel text-sm text-bone-500">
-            Everything runs offline and is saved locally. Your desktop is restored each visit.
+            Core features work without a network and your work is saved locally; only the
+            optional online AI uses the internet. Your desktop is restored each visit.
           </p>
-          <div className="flex flex-wrap gap-2">
+          {/* Equal-sized, responsive 2×2 grid: one column on very narrow
+              widths, two columns otherwise. `w-full` + matching padding keeps
+              all four buttons the same size. */}
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <button
               type="button"
               onClick={() => {
                 onOpenApp('explorer');
                 dismiss();
               }}
-              className="rounded-sm border border-spectral-600 bg-crypt-700 px-3 py-1.5 font-pixel text-base text-spectral-400 hover:bg-crypt-600 bevel-out"
+              className="w-full rounded-sm border border-spectral-600 bg-crypt-700 px-3 py-1.5 text-center font-pixel text-base text-spectral-400 hover:bg-crypt-600 bevel-out"
             >
               Explore my files
             </button>
@@ -121,7 +125,7 @@ export function WelcomeDialog({ onOpenApp }: Props) {
                 onOpenApp('music');
                 dismiss();
               }}
-              className="rounded-sm border border-crypt-500 bg-crypt-700 px-3 py-1.5 font-pixel text-base text-bone-200 hover:bg-crypt-600 bevel-out"
+              className="w-full rounded-sm border border-crypt-500 bg-crypt-700 px-3 py-1.5 text-center font-pixel text-base text-bone-200 hover:bg-crypt-600 bevel-out"
             >
               Hear a demo track
             </button>
@@ -133,14 +137,14 @@ export function WelcomeDialog({ onOpenApp }: Props) {
                 onOpenApp('settings', { focus: 'restore' });
                 dismiss();
               }}
-              className="rounded-sm border border-crypt-500 bg-crypt-700 px-3 py-1.5 font-pixel text-base text-bone-200 hover:bg-crypt-600 bevel-out"
+              className="w-full rounded-sm border border-crypt-500 bg-crypt-700 px-3 py-1.5 text-center font-pixel text-base text-bone-200 hover:bg-crypt-600 bevel-out"
             >
               Restore a backup
             </button>
             <button
               type="button"
               onClick={dismiss}
-              className="ml-auto rounded-sm border border-crypt-500 bg-crypt-700 px-3 py-1.5 font-pixel text-base text-bone-300 hover:bg-crypt-600"
+              className="w-full rounded-sm border border-crypt-500 bg-crypt-700 px-3 py-1.5 text-center font-pixel text-base text-bone-300 hover:bg-crypt-600 bevel-out"
             >
               Enter GhostOS
             </button>
