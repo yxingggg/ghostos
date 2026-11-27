@@ -23,8 +23,8 @@ body {
   -webkit-font-smoothing: none;
 }
 
-/* Original CSS/SVG wallpaper — a gothic gradient with a faint spectral arch.
-   No third-party or proprietary imagery. */
+/* Original CSS/SVG wallpapers — gothic gradients, no third-party imagery.
+   Three atmospheric themes, selectable in Settings. */
 .ghost-wallpaper {
   background-color: #0a0812;
   background-image:
@@ -38,6 +38,45 @@ body {
       transparent 1px,
       transparent 3px
     );
+}
+
+/* "Crypt" — the default (above), aliased for the picker. */
+.wall-crypt {
+  background-color: #0a0812;
+  background-image:
+    radial-gradient(1200px 700px at 50% -10%, rgba(139, 92, 246, 0.22), transparent 60%),
+    radial-gradient(900px 600px at 15% 110%, rgba(75, 179, 167, 0.14), transparent 55%),
+    radial-gradient(900px 600px at 85% 110%, rgba(110, 242, 164, 0.1), transparent 55%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0 1px, transparent 1px 3px);
+}
+
+/* "Blood Moon" — a dark amber/blood horizon with a rising orb. */
+.wall-bloodmoon {
+  background-color: #0b0710;
+  background-image:
+    radial-gradient(360px 360px at 72% 26%, rgba(232, 150, 58, 0.5), rgba(192, 57, 43, 0.18) 45%, transparent 70%),
+    radial-gradient(1400px 800px at 50% 120%, rgba(109, 63, 209, 0.28), transparent 60%),
+    linear-gradient(180deg, #120a18 0%, #0b0710 60%);
+}
+
+/* "Haunted Forest" — layered spectral-green mist and silhouette bands. */
+.wall-forest {
+  background-color: #060b09;
+  background-image:
+    radial-gradient(1000px 600px at 50% -8%, rgba(110, 242, 164, 0.16), transparent 60%),
+    repeating-linear-gradient(90deg, rgba(57, 193, 120, 0.05) 0 2px, transparent 2px 46px),
+    radial-gradient(1200px 500px at 50% 115%, rgba(53, 122, 114, 0.4), transparent 60%),
+    linear-gradient(180deg, #08130d 0%, #060b09 70%);
+}
+
+/* "Amethyst Void" — deep nebular purples. */
+.wall-void {
+  background-color: #080611;
+  background-image:
+    radial-gradient(700px 700px at 20% 25%, rgba(139, 92, 246, 0.35), transparent 65%),
+    radial-gradient(600px 600px at 82% 70%, rgba(75, 179, 167, 0.22), transparent 60%),
+    radial-gradient(900px 500px at 50% 120%, rgba(167, 132, 248, 0.2), transparent 60%),
+    linear-gradient(180deg, #0c0920 0%, #080611 70%);
 }
 
 /* CRT overlay: scanlines + vignette. Flicker is applied separately and gated

@@ -40,12 +40,18 @@ const config: Config = {
           600: '#6d3fd1',
         },
         bone: {
-          100: '#e8e3f0',
-          300: '#c7bfd8',
+          100: '#f1edf8',
+          300: '#cfc7df',
           500: '#9a8fb0',
         },
         blood: {
           500: '#c0392b',
+          400: '#e05a4c',
+        },
+        // Warm accent for highlights/badges — improves contrast against purples.
+        ember: {
+          400: '#f4b267',
+          500: '#e8963a',
         },
       },
       fontFamily: {
@@ -61,7 +67,9 @@ const config: Config = {
           'inset -1px -1px 0 0 rgba(255,255,255,0.12), inset 2px 2px 0 0 rgba(0,0,0,0.6)',
         glow: '0 0 12px 0 rgba(110,242,164,0.35)',
         'glow-amethyst': '0 0 16px 0 rgba(139,92,246,0.4)',
-        window: '0 10px 40px -8px rgba(0,0,0,0.8)',
+        'glow-sm': '0 0 6px 0 rgba(110,242,164,0.3)',
+        window: '0 16px 48px -10px rgba(0,0,0,0.85), 0 2px 8px -2px rgba(139,92,246,0.25)',
+        'taskbar': '0 -6px 20px -8px rgba(0,0,0,0.7)',
       },
       keyframes: {
         flicker: {
@@ -79,11 +87,31 @@ const config: Config = {
           '0%': { opacity: '0', transform: 'translateY(6px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        fadein: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-6px)' },
+        },
+        pulseglow: {
+          '0%, 100%': { filter: 'drop-shadow(0 0 4px rgba(110,242,164,0.4))' },
+          '50%': { filter: 'drop-shadow(0 0 12px rgba(110,242,164,0.8))' },
+        },
+        winopen: {
+          '0%': { opacity: '0', transform: 'scale(0.97) translateY(4px)' },
+          '100%': { opacity: '1', transform: 'scale(1) translateY(0)' },
+        },
       },
       animation: {
         flicker: 'flicker 6s linear infinite',
         bootblink: 'bootblink 1s step-end infinite',
         risefade: 'risefade 180ms ease-out',
+        fadein: 'fadein 300ms ease-out',
+        float: 'float 4s ease-in-out infinite',
+        pulseglow: 'pulseglow 3s ease-in-out infinite',
+        winopen: 'winopen 140ms ease-out',
       },
     },
   },

@@ -99,10 +99,10 @@ export function WindowFrame({ win, focused, coarsePointer }: Props) {
       aria-modal={false}
       tabIndex={-1}
       className={[
-        'absolute flex flex-col rounded-sm border bg-crypt-700 text-bone-100 shadow-window outline-none',
+        'absolute flex animate-winopen flex-col overflow-hidden rounded-lg border text-bone-100 shadow-window outline-none',
         focused
           ? 'border-amethyst-500/70 shadow-glow-amethyst'
-          : 'border-crypt-500 opacity-95',
+          : 'border-crypt-500/80 opacity-95',
       ].join(' ')}
       style={{
         left: win.bounds.x,
@@ -118,14 +118,14 @@ export function WindowFrame({ win, focused, coarsePointer }: Props) {
         onPointerDown={startDrag}
         onDoubleClick={() => wm.toggleMaximize(win.id)}
         className={[
-          'flex h-8 shrink-0 items-center gap-2 border-b px-2 select-none',
+          'flex h-9 shrink-0 items-center gap-2 border-b px-2 select-none',
           focused
-            ? 'cursor-grab border-amethyst-600 bg-gradient-to-r from-crypt-600 to-amethyst-600/40'
+            ? 'cursor-grab border-amethyst-600/60 bg-gradient-to-r from-amethyst-600/35 via-crypt-600 to-crypt-600'
             : 'cursor-default border-crypt-500 bg-crypt-600',
         ].join(' ')}
       >
-        <Icon className="text-spectral-500" />
-        <span className="flex-1 truncate font-pixel text-lg leading-none">{win.title}</span>
+        <Icon className={`text-lg ${focused ? 'text-spectral-500' : 'text-bone-500'}`} />
+        <span className="flex-1 truncate font-gothic text-lg leading-none tracking-wide">{win.title}</span>
         <div data-no-drag className="flex items-center gap-1">
           <TitleButton label="Minimize" onClick={() => { playSfx('click', sound); wm.minimize(win.id); }}>
             _

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { prefersReducedMotion, useSettings } from '../state/settingsStore';
 import { playSfx } from '../sound/sfx';
+import { GhostMascot, GhostLogo } from '../assets/brand';
 
 interface Props {
   onDone: () => void;
@@ -11,6 +12,7 @@ const LINES = [
   'Summoning memory .............. 640K OK (and then some)',
   'Detecting apparitions ......... [ OK ]',
   'Mounting /crypt (IndexedDB) ... [ OK ]',
+  'Restoring Ghost Memory ........ [ OK ]',
   'Loading window manager ........ [ OK ]',
   'Calibrating CRT phosphor ...... [ OK ]',
   'Awakening the desktop ...',
@@ -41,12 +43,14 @@ export function BootSequence({ onDone }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const float = !prefersReducedMotion(reduced);
   return (
-    <div className="ghost-wallpaper grid h-full w-full place-items-center">
+    <div className="wall-void grid h-full w-full place-items-center">
       <div className="w-[min(90vw,640px)] p-6">
-        <h1 className="mb-4 font-gothic text-5xl text-spectral-500 drop-shadow-[0_0_8px_rgba(110,242,164,0.5)]">
-          GhostOS
-        </h1>
+        <div className="mb-5 flex items-center gap-4">
+          <GhostMascot className="h-16 w-16" float={float} />
+          <GhostLogo className="text-5xl" showMascot={false} />
+        </div>
         <pre className="font-pixel text-lg leading-relaxed text-spectral-400">
           {LINES.slice(0, shown).map((l, i) => (
             <div key={i}>{l}</div>

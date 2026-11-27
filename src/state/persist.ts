@@ -15,7 +15,8 @@ export type SliceName =
   | 'notes'
   | 'vfs'
   | 'music'
-  | 'wm-layout';
+  | 'wm-layout'
+  | 'welcome';
 
 // Content is stored only as ArrayBuffer (binary) or string (text). Blobs are
 // converted to ArrayBuffer by callers before storage, because Blobs do not

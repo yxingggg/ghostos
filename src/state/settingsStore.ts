@@ -13,12 +13,15 @@ export interface AssistantConfig {
   model?: string;
 }
 
+export type WallpaperId = 'crypt' | 'bloodmoon' | 'forest' | 'void';
+
 export interface Settings {
   crt: boolean;
   reducedMotion: boolean;
   sound: boolean;
   assistant: AssistantConfig;
   theme: 'gothic';
+  wallpaper: WallpaperId;
 }
 
 export const defaultSettings: Settings = {
@@ -27,7 +30,15 @@ export const defaultSettings: Settings = {
   sound: false, // sound is opt-in
   assistant: { enabled: false, provider: 'openai' },
   theme: 'gothic',
+  wallpaper: 'crypt',
 };
+
+export const WALLPAPERS: Array<{ id: WallpaperId; name: string; className: string }> = [
+  { id: 'crypt', name: 'Crypt', className: 'wall-crypt' },
+  { id: 'bloodmoon', name: 'Blood Moon', className: 'wall-bloodmoon' },
+  { id: 'forest', name: 'Haunted Forest', className: 'wall-forest' },
+  { id: 'void', name: 'Amethyst Void', className: 'wall-void' },
+];
 
 interface SettingsStore extends Settings {
   hydrated: boolean;

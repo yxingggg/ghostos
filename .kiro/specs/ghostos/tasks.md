@@ -262,6 +262,27 @@
     in Tomb Explorer. _Requirements: 15.3_
   - _Requirements: 9, 7b_
 
+- [ ] 28. Visual polish (premium haunted retro-futuristic experience)
+  - Original GhostOS logo + ghost mascot "Wisp" (src/assets/brand.tsx); favicon updated.
+  - Colourful app icon tiles (gradient badges over the original glyphs) in desktop, start
+    menu, and taskbar (src/ui/AppIconTile.tsx; per-app `accent` in the registry).
+  - Three+ atmospheric gothic wallpapers (Crypt, Blood Moon, Haunted Forest, Amethyst Void)
+    selectable in Settings; CSS/SVG only.
+  - Polished taskbar (branded Start with mascot, gradient, shadow), start menu (branded
+    header, winopen animation), window frames (rounded, gradient title bar, open animation),
+    typography/spacing/contrast; new reduced-motion-aware animations (float, pulseglow,
+    fadein, winopen).
+  - First-launch welcome experience (WelcomeDialog) with the mascot and seeded sample files
+    (WELCOME.txt, scratchpad.md, sample image) in home/documents; one-time via a `welcome`
+    slice.
+  - Branded "Ghost Memory" workspace restoration (wm-layout restore surfaced + export/import
+    relabeled in Settings).
+  - CRT effects remain optional/toggleable; all motion respects prefers-reduced-motion.
+  - Playwright screenshot capture of desktop, start menu, welcome, and windows.
+  - Preserves functionality, data, responsive layouts, and offline support; no new apps, no
+    architecture rewrite.
+  - _Requirements: 11 (theme/CRT), 12 (a11y/responsive), 13 (sound), 5.2 (restore)_
+
 > Verification (CI run on commit ed4fb38): build-and-test green — 160 unit/integration/
 > property tests across 20 files, type-check, lint, production build; e2e job green — 5
 > Playwright tests passed in real Chromium (create→open→edit→save→reload→persist;

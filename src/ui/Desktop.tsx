@@ -7,7 +7,8 @@ import { Taskbar } from './Taskbar';
 import { StartMenu } from './StartMenu';
 import { Toasts } from './Toasts';
 import { CrtOverlay } from './CrtOverlay';
-import { useSettings } from '../state/settingsStore';
+import { WelcomeDialog } from './WelcomeDialog';
+import { useSettings, WALLPAPERS } from '../state/settingsStore';
 import { playSfx } from '../sound/sfx';
 
 function useCoarsePointer(): boolean {
@@ -29,6 +30,8 @@ export function Desktop() {
   const windows = useWm((s) => s.state.order.map((id) => s.state.windows[id]));
   const focusedId = useWm((s) => s.state.focusedId);
   const sound = useSettings((s) => s.sound);
+  const wallpaper = useSettings((s) => s.wallpaper);
+  const wallClass = WALLPAPERS.find((w) => w.id === wallpaper)?.className ?? 'wall-crypt';
   const desktopApps = getApps().filter((a) => a.desktop !== false);
   const [selected, setSelected] = useState<string | null>(null);
   const [activeIcon, setActiveIcon] = useState(0);
@@ -61,7 +64,7 @@ export function Desktop() {
   return (
     <div
       ref={rootRef}
-      className="ghost-wallpaper relative h-full w-full overflow-hidden"
+      className={`${wallClass} relative h-full w-full overflow-hidden`}
       onMouseDown={(e) => {
         if (e.target === rootRef.current) {
           setSelected(null);
@@ -113,6 +116,8 @@ export function Desktop() {
 
       <StartMenu open={startOpen} onClose={() => setStartOpen(false)} onLaunch={launch} />
       <Taskbar onToggleStart={() => setStartOpen((o) => !o)} startOpen={startOpen} />
+
+      <WelcomeDialog onOpenApp={(id) => launch(id)} />
 
       <CrtOverlay />
     </div>

@@ -1,8 +1,9 @@
 import { useWm } from '../state/wmStore';
 import { getApp } from '../apps/registry';
-import { GhostSigil } from '../assets/icons';
+import { AppIconTile } from './AppIconTile';
+import { GhostMascot } from '../assets/brand';
 import { Clock } from './Clock';
-import { useSettings } from '../state/settingsStore';
+import { useSettings, prefersReducedMotion } from '../state/settingsStore';
 import { playSfx } from '../sound/sfx';
 
 interface Props {
@@ -15,9 +16,11 @@ export function Taskbar({ onToggleStart, startOpen }: Props) {
   const focusedId = useWm((s) => s.state.focusedId);
   const wm = useWm();
   const sound = useSettings((s) => s.sound);
+  const reduced = useSettings((s) => s.reducedMotion);
+  const float = !prefersReducedMotion(reduced);
 
   return (
-    <div className="absolute inset-x-0 bottom-0 z-[150] flex h-10 items-stretch gap-1 border-t border-amethyst-600 bg-crypt-800/95 px-1 backdrop-blur">
+    <div className="absolute inset-x-0 bottom-0 z-[150] flex h-11 items-stretch gap-1 border-t border-amethyst-600/70 bg-gradient-to-b from-crypt-700/95 to-crypt-800/95 px-1.5 shadow-taskbar backdrop-blur">
       <button
         type="button"
         aria-haspopup="menu"
@@ -28,11 +31,13 @@ export function Taskbar({ onToggleStart, startOpen }: Props) {
           onToggleStart();
         }}
         className={[
-          'my-1 flex items-center gap-2 rounded-sm border border-amethyst-600 px-3 font-gothic text-lg bevel-out',
-          startOpen ? 'bg-amethyst-600 text-white' : 'bg-crypt-700 text-spectral-500 hover:bg-crypt-600',
+          'my-1 flex items-center gap-2 rounded-md border px-3 font-gothic text-lg transition-colors bevel-out',
+          startOpen
+            ? 'border-amethyst-500 bg-amethyst-600 text-white shadow-glow-amethyst'
+            : 'border-amethyst-600/70 bg-crypt-700 text-spectral-500 hover:bg-crypt-600',
         ].join(' ')}
       >
-        <GhostSigil className="text-xl" />
+        <GhostMascot className={`h-6 w-6 ${float ? 'animate-pulseglow' : ''}`} />
         Start
       </button>
 
@@ -41,7 +46,6 @@ export function Taskbar({ onToggleStart, startOpen }: Props) {
           if (!win) return null;
           const app = getApp(win.appId);
           if (!app) return null;
-          const Icon = app.Icon;
           const isFocused = win.id === focusedId && !win.minimized;
           return (
             <button
@@ -54,15 +58,15 @@ export function Taskbar({ onToggleStart, startOpen }: Props) {
                 else wm.restore(win.id);
               }}
               className={[
-                'flex max-w-[12rem] items-center gap-2 rounded-sm border px-2 font-pixel text-base truncate',
+                'my-1 flex max-w-[12rem] items-center gap-2 truncate rounded-md border px-2 font-pixel text-base transition-colors',
                 isFocused
-                  ? 'border-amethyst-500 bg-amethyst-600/40 text-bone-100'
+                  ? 'border-amethyst-500 bg-amethyst-600/40 text-bone-100 shadow-glow-sm'
                   : win.minimized
-                    ? 'border-crypt-500 bg-crypt-700 text-bone-500 italic'
+                    ? 'border-crypt-500 bg-crypt-700/60 text-bone-500 italic'
                     : 'border-crypt-500 bg-crypt-700 text-bone-300 hover:bg-crypt-600',
               ].join(' ')}
             >
-              <Icon className="shrink-0 text-lg text-spectral-500" />
+              <AppIconTile app={app} size="sm" />
               <span className="truncate">{win.title}</span>
             </button>
           );

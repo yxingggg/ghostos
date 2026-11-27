@@ -33,6 +33,7 @@ export function registerBuiltinApps(): void {
     Icon: NotesIcon,
     Component: NotesApp,
     defaultBounds: { width: 560, height: 420 },
+    accent: { from: '#6d3fd1', to: '#4bb3a7', glyph: '#f1edf8' },
   });
   registerApp({
     id: 'explorer',
@@ -40,6 +41,7 @@ export function registerBuiltinApps(): void {
     Icon: ExplorerIcon,
     Component: ExplorerApp,
     defaultBounds: { width: 600, height: 440 },
+    accent: { from: '#357a72', to: '#6ef2a4', glyph: '#0e0b16' },
   });
   registerApp({
     id: 'terminal',
@@ -47,6 +49,7 @@ export function registerBuiltinApps(): void {
     Icon: TerminalIcon,
     Component: TerminalApp,
     defaultBounds: { width: 620, height: 400 },
+    accent: { from: '#111014', to: '#39c178', glyph: '#6ef2a4' },
   });
   registerApp({
     id: 'calculator',
@@ -54,6 +57,7 @@ export function registerBuiltinApps(): void {
     Icon: CalculatorIcon,
     Component: CalculatorApp,
     defaultBounds: { width: 300, height: 420 },
+    accent: { from: '#6d3fd1', to: '#a784f8', glyph: '#f1edf8' },
   });
   registerApp({
     id: 'music',
@@ -61,6 +65,7 @@ export function registerBuiltinApps(): void {
     Icon: MusicIcon,
     Component: MusicApp,
     defaultBounds: { width: 520, height: 500 },
+    accent: { from: '#357a72', to: '#8b5cf6', glyph: '#f1edf8' },
   });
   registerApp({
     id: 'imageviewer',
@@ -70,6 +75,7 @@ export function registerBuiltinApps(): void {
     defaultBounds: { width: 480, height: 420 },
     // Launched only by opening an image file; not shown as a desktop icon.
     desktop: false,
+    accent: { from: '#357a72', to: '#6fcabf', glyph: '#0e0b16' },
   });
   registerApp({
     id: 'settings',
@@ -78,6 +84,7 @@ export function registerBuiltinApps(): void {
     Component: SettingsApp,
     defaultBounds: { width: 520, height: 520 },
     singleton: true,
+    accent: { from: '#2a2733', to: '#9a8fb0', glyph: '#f1edf8' },
   });
   registerApp({
     id: 'assistant',
@@ -86,5 +93,6 @@ export function registerBuiltinApps(): void {
     Component: AssistantApp,
     defaultBounds: { width: 420, height: 520 },
     singleton: true,
+    accent: { from: '#6d3fd1', to: '#e8963a', glyph: '#f1edf8' },
   });
 }

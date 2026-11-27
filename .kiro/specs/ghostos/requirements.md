@@ -238,8 +238,10 @@ experience feels authentically nostalgic.
 
 1. The UI SHALL apply a cohesive retro gothic theme via Tailwind design tokens (colors, fonts, borders).
 2. The system SHALL offer a toggleable CRT effect layer (scanlines/glow/flicker).
-3. Icons SHALL be original assets authored for this project (no third-party icon packs for app/desktop icons).
+3. Icons SHALL be original assets authored for this project (no third-party icon packs for app/desktop icons), including an original GhostOS logo and ghost mascot and colourful per-app icon tiles.
 4. WHEN the user enables "reduced motion" (via setting or OS preference) THEN the system SHALL disable flicker and non-essential animation.
+5. The system SHALL offer at least three original CSS/SVG gothic wallpapers selectable by the user, with no third-party or proprietary imagery.
+6. On first launch the system SHALL show a branded welcome experience and seed a few sample files, shown only once (persisted).
 
 ### Requirement 12: Accessibility and responsiveness
 

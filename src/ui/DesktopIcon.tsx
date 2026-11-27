@@ -1,4 +1,5 @@
 import type { AppDefinition } from '../apps/registry';
+import { AppIconTile } from './AppIconTile';
 
 interface Props {
   app: AppDefinition;
@@ -11,7 +12,6 @@ interface Props {
 
 /** A single selectable, keyboard-operable desktop icon. */
 export function DesktopIcon({ app, selected, tabIndex, onSelect, onLaunch, onFocusItem }: Props) {
-  const Icon = app.Icon;
   return (
     <button
       type="button"
@@ -29,13 +29,15 @@ export function DesktopIcon({ app, selected, tabIndex, onSelect, onLaunch, onFoc
         }
       }}
       className={[
-        'flex w-20 flex-col items-center gap-1 rounded p-2 text-center',
-        'focus:outline-none',
+        'group flex w-20 flex-col items-center gap-1.5 rounded-lg p-2 text-center transition-colors',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-spectral-500',
         selected ? 'bg-amethyst-600/30 ring-1 ring-amethyst-500' : 'hover:bg-crypt-600/40',
       ].join(' ')}
     >
-      <Icon className="text-4xl text-spectral-500" />
-      <span className="font-pixel text-sm leading-tight text-bone-100 drop-shadow">
+      <span className="transition-transform duration-150 group-hover:-translate-y-0.5">
+        <AppIconTile app={app} />
+      </span>
+      <span className="font-pixel text-sm leading-tight text-bone-100 [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]">
         {app.name}
       </span>
     </button>

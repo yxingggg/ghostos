@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AppComponentProps } from '../registry';
-import { useSettings } from '../../state/settingsStore';
+import { useSettings, WALLPAPERS } from '../../state/settingsStore';
 import { exportAll, importAll } from '../../state/persist';
 import { useToasts } from '../../state/toastStore';
 import {
@@ -14,8 +14,10 @@ export function SettingsApp({ props }: AppComponentProps) {
   const crt = useSettings((s) => s.crt);
   const reducedMotion = useSettings((s) => s.reducedMotion);
   const sound = useSettings((s) => s.sound);
+  const wallpaper = useSettings((s) => s.wallpaper);
   const assistant = useSettings((s) => s.assistant);
   const toggle = useSettings((s) => s.toggle);
+  const set = useSettings((s) => s.set);
   const setAssistant = useSettings((s) => s.setAssistant);
   const push = useToasts((s) => s.push);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -86,6 +88,30 @@ export function SettingsApp({ props }: AppComponentProps) {
           checked={reducedMotion}
           onChange={() => toggle('reducedMotion')}
         />
+        <div>
+          <span className="mb-1 block text-bone-300">Wallpaper</span>
+          <div className="flex flex-wrap gap-2">
+            {WALLPAPERS.map((w) => (
+              <button
+                key={w.id}
+                type="button"
+                aria-label={w.name}
+                aria-pressed={wallpaper === w.id}
+                onClick={() => set('wallpaper', w.id)}
+                className={[
+                  'h-14 w-20 rounded-md border-2 text-left',
+                  w.className,
+                  wallpaper === w.id ? 'border-spectral-500 shadow-glow-sm' : 'border-crypt-500',
+                ].join(' ')}
+                title={w.name}
+              >
+                <span className="m-1 inline-block rounded bg-black/40 px-1 font-pixel text-[11px] text-bone-100">
+                  {w.name}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
       </Section>
 
       <Section title="Sound">
@@ -93,10 +119,14 @@ export function SettingsApp({ props }: AppComponentProps) {
         <p className="text-sm text-bone-500">Sound is off by default and synthesized locally (no files, no network).</p>
       </Section>
 
-      <Section title="Workspace data">
+      <Section title="Ghost Memory (workspace data)">
+        <p className="text-sm text-bone-500">
+          Ghost Memory keeps your files, notes, music, and open windows in this browser and
+          restores them automatically on each visit. Back it up or move it between browsers here.
+        </p>
         <div className="flex gap-2">
-          <ActionButton onClick={() => void doExport()}>Export backup</ActionButton>
-          <ActionButton onClick={() => fileRef.current?.click()}>Import backup</ActionButton>
+          <ActionButton onClick={() => void doExport()}>Export Ghost Memory</ActionButton>
+          <ActionButton onClick={() => fileRef.current?.click()}>Import Ghost Memory</ActionButton>
           <input
             ref={fileRef}
             type="file"
@@ -108,7 +138,6 @@ export function SettingsApp({ props }: AppComponentProps) {
             }}
           />
         </div>
-        <p className="text-sm text-bone-500">Everything is stored locally in your browser (IndexedDB).</p>
       </Section>
 
       <div ref={assistantSectionRef} id="assistant-settings">

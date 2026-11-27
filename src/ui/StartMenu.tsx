@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getApps } from '../apps/registry';
+import { AppIconTile } from './AppIconTile';
+import { GhostLogo } from '../assets/brand';
 
 interface Props {
   open: boolean;
@@ -51,33 +53,30 @@ export function StartMenu({ open, onClose, onLaunch }: Props) {
           if (app) onLaunch(app.id);
         }
       }}
-      className="absolute bottom-11 left-1 z-[200] w-64 animate-risefade overflow-hidden rounded-sm border border-amethyst-600 bg-crypt-800 shadow-window outline-none"
+      className="absolute bottom-12 left-1.5 z-[200] w-72 animate-winopen overflow-hidden rounded-lg border border-amethyst-600/70 bg-crypt-800/95 shadow-window outline-none backdrop-blur"
     >
-      <div className="flex items-center gap-2 border-b border-amethyst-600 bg-gradient-to-r from-amethyst-600/60 to-crypt-700 px-3 py-2">
-        <span className="font-gothic text-lg text-bone-100">GhostOS</span>
+      <div className="flex items-center gap-2 border-b border-amethyst-600/60 bg-gradient-to-r from-amethyst-600/50 via-crypt-700 to-crypt-800 px-3 py-2.5">
+        <GhostLogo className="text-xl" />
       </div>
-      <ul className="py-1">
-        {apps.map((app, i) => {
-          const Icon = app.Icon;
-          return (
-            <li key={app.id} role="none">
-              <button
-                type="button"
-                role="menuitem"
-                tabIndex={-1}
-                onMouseEnter={() => setActive(i)}
-                onClick={() => onLaunch(app.id)}
-                className={[
-                  'flex w-full items-center gap-3 px-3 py-1.5 text-left font-pixel text-lg',
-                  i === active ? 'bg-amethyst-600/40 text-bone-100' : 'text-bone-300',
-                ].join(' ')}
-              >
-                <Icon className="text-2xl text-spectral-500" />
-                {app.name}
-              </button>
-            </li>
-          );
-        })}
+      <ul className="py-1.5">
+        {apps.map((app, i) => (
+          <li key={app.id} role="none">
+            <button
+              type="button"
+              role="menuitem"
+              tabIndex={-1}
+              onMouseEnter={() => setActive(i)}
+              onClick={() => onLaunch(app.id)}
+              className={[
+                'flex w-full items-center gap-3 px-3 py-1.5 text-left font-pixel text-lg transition-colors',
+                i === active ? 'bg-amethyst-600/40 text-bone-100' : 'text-bone-300 hover:bg-crypt-700/60',
+              ].join(' ')}
+            >
+              <AppIconTile app={app} size="sm" />
+              {app.name}
+            </button>
+          </li>
+        ))}
       </ul>
     </div>
   );

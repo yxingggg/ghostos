@@ -41,6 +41,13 @@ confirm it in a browser. See [Limitations](#limitations-and-remaining-verificati
 
 ## Features
 
+- **Premium haunted look** — an original GhostOS logo and ghost mascot ("Wisp"), colourful
+  app icon tiles, four selectable CSS/SVG gothic wallpapers, polished window chrome, and
+  smooth reduced-motion-aware animations.
+- **First-launch welcome** — a branded intro that seeds sample files into your filesystem;
+  shown once.
+- **Ghost Memory** — your desktop, files, notes, and open windows are restored automatically
+  each visit (and are exportable/importable).
 - **Atmospheric boot sequence** — a retro BIOS-style summoning on load.
 - **Window manager** — draggable, resizable windows with minimize, maximize/restore,
   close, focus/z-order management, and cascade placement.

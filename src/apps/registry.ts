@@ -16,6 +16,11 @@ export interface AppDefinition {
   singleton?: boolean;
   /** Show on the desktop as an icon. */
   desktop?: boolean;
+  /**
+   * Visual accent for the app's icon tile: a CSS gradient and a glyph tint.
+   * Purely cosmetic; defaults applied if omitted.
+   */
+  accent?: { from: string; to: string; glyph: string };
 }
 
 const registry = new Map<string, AppDefinition>();

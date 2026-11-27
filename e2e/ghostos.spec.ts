@@ -286,3 +286,41 @@ test('Spectral Viewer: load the original sample image, then zoom and rotate', as
     timeout: 10_000,
   });
 });
+
+// --- Visual polish: capture screenshots of key surfaces ---
+
+test('visual: capture branded desktop, start menu, and windows', async ({ page }, testInfo) => {
+  await boot(page);
+
+  // First-launch welcome appears with branding; capture, then enter.
+  const welcome = page.getByRole('dialog', { name: /welcome to ghostos/i });
+  if (await welcome.count()) {
+    await expect(welcome).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath('01-welcome.png') });
+    await welcome.getByRole('button', { name: /enter ghostos/i }).click();
+  }
+
+  // Desktop with colourful icons.
+  await expect(page.getByRole('grid', { name: /desktop icons/i })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('02-desktop.png') });
+
+  // Start menu with branded header + icon tiles.
+  await page.getByRole('button', { name: /start menu/i }).click();
+  await expect(page.getByRole('menu', { name: /start menu/i })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('03-startmenu.png') });
+  await page.keyboard.press('Escape');
+
+  // A couple of open windows.
+  await launch(page, 'Calculator');
+  await launch(page, 'GraveNotes');
+  await page.screenshot({ path: testInfo.outputPath('04-windows.png') });
+
+  // Attach screenshots to the report as evidence.
+  for (const name of ['01-welcome.png', '02-desktop.png', '03-startmenu.png', '04-windows.png']) {
+    try {
+      await testInfo.attach(name, { path: testInfo.outputPath(name), contentType: 'image/png' });
+    } catch {
+      /* welcome screenshot may be absent if already dismissed */
+    }
+  }
+});
