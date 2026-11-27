@@ -161,13 +161,17 @@ function checkInvariants(s: WmState): void {
   // order integrity
   expect(order).toEqual(keys);
   expect(new Set(s.order).size).toBe(s.order.length);
-  // focus uniqueness
+  // focus uniqueness: the focused id must reference a live window, and a
+  // focused non-minimized window must be the topmost *non-minimized* window
+  // (minimized windows may legitimately sit above it in the stacking order).
   if (s.focusedId !== null) {
-    expect(s.windows[s.focusedId]).toBeDefined();
-    const nonMinTop = s.order[s.order.length - 1];
-    // focused must be the top of order (unless it was minimized away)
-    if (!s.windows[s.focusedId]?.minimized) {
-      expect(s.focusedId).toBe(nonMinTop);
+    const focused = s.windows[s.focusedId];
+    expect(focused).toBeDefined();
+    if (focused && !focused.minimized) {
+      const topVisible = [...s.order]
+        .reverse()
+        .find((id) => !s.windows[id]?.minimized);
+      expect(s.focusedId).toBe(topVisible);
     }
   }
   // z monotonicity + bounds clamping

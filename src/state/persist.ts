@@ -210,12 +210,32 @@ function base64ToBuffer(b64: string): ArrayBuffer {
   return bytes.buffer;
 }
 
-/** Test-only: reset the in-memory fallback and cached db handle. */
-export function __resetPersistenceForTests(): void {
+/**
+ * Test-only: reset the in-memory fallback and cached db handle, and delete the
+ * underlying IndexedDB database so each test starts from a clean store.
+ */
+export async function __resetPersistenceForTests(): Promise<void> {
   memory.kv.clear();
   memory.content.clear();
+  // Close the cached connection before deleting, then wait for deletion.
+  if (dbPromise) {
+    try {
+      const db = await dbPromise;
+      db?.close();
+    } catch {
+      // ignore
+    }
+  }
   dbPromise = null;
   degraded = false;
   noticeShown = false;
   onDegrade = null;
+  if (typeof indexedDB !== 'undefined') {
+    await new Promise<void>((resolve) => {
+      const req = indexedDB.deleteDatabase(DB_NAME);
+      req.onsuccess = () => resolve();
+      req.onerror = () => resolve();
+      req.onblocked = () => resolve();
+    });
+  }
 }

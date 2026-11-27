@@ -10,8 +10,8 @@ import {
 } from './persist';
 
 describe('persistence (fake-indexeddb)', () => {
-  beforeEach(() => {
-    __resetPersistenceForTests();
+  beforeEach(async () => {
+    await __resetPersistenceForTests();
   });
 
   it('round-trips a KV slice', async () => {
@@ -43,7 +43,7 @@ describe('persistence (fake-indexeddb)', () => {
     await putContent('blobTyped', new Blob([bytes], { type: 'audio/mpeg' }));
     const dump = await exportAll();
 
-    __resetPersistenceForTests();
+    await __resetPersistenceForTests();
     await importAll(dump);
 
     const a = await getContent('blobEmptyMime');
@@ -66,7 +66,7 @@ describe('persistence (fake-indexeddb)', () => {
     await putContent('blob1', 'payload');
     const dump = await exportAll();
 
-    __resetPersistenceForTests();
+    await __resetPersistenceForTests();
     expect(await loadSlice('settings')).toBeUndefined();
 
     await importAll(dump);

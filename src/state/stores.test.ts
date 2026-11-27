@@ -35,7 +35,7 @@ describe('wmStore (integration)', () => {
   });
 
   it('persists and restores the window layout across a reload', async () => {
-    __resetPersistenceForTests();
+    await __resetPersistenceForTests();
     useWm.setState({ state: createInitialState() });
     useWm.getState().open({ appId: 'notes', title: 'GraveNotes', bounds: { x: 40, y: 60, width: 400, height: 300 } });
     useWm.getState().open({ appId: 'calculator', title: 'Calculator' });
@@ -53,8 +53,8 @@ describe('wmStore (integration)', () => {
 });
 
 describe('notesStore persistence (integration)', () => {
-  beforeEach(() => {
-    __resetPersistenceForTests();
+  beforeEach(async () => {
+    await __resetPersistenceForTests();
     useNotes.setState({ notes: [], hydrated: false });
   });
 
@@ -72,19 +72,29 @@ describe('notesStore persistence (integration)', () => {
     expect(useNotes.getState().notes.find((n) => n.id === id)?.body).toBe('hello crypt');
   });
 
-  it('orders notes by most recently updated', async () => {
-    const a = useNotes.getState().create('A');
-    const b = useNotes.getState().create('B');
-    useNotes.getState().update(a, { body: 'touched last' });
-    const ordered = useNotes.getState().ordered();
-    expect(ordered[0]?.id).toBe(a);
-    expect(ordered[1]?.id).toBe(b);
+  it('orders notes by most recently updated', () => {
+    // Use fake timers so each mutation gets a strictly later timestamp,
+    // making the recency ordering deterministic.
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date(1000));
+      const a = useNotes.getState().create('A');
+      vi.setSystemTime(new Date(2000));
+      const b = useNotes.getState().create('B');
+      vi.setSystemTime(new Date(3000));
+      useNotes.getState().update(a, { body: 'touched last' });
+      const ordered = useNotes.getState().ordered();
+      expect(ordered[0]?.id).toBe(a);
+      expect(ordered[1]?.id).toBe(b);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
 describe('vfsStore persistence (integration)', () => {
-  beforeEach(() => {
-    __resetPersistenceForTests();
+  beforeEach(async () => {
+    await __resetPersistenceForTests();
   });
 
   it('creates a folder and a text file and reads it back', async () => {
