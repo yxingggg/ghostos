@@ -325,9 +325,15 @@ so that I can move and resurrect my entire workspace with confidence and no surp
 7a. WHEN a restore succeeds THEN the system SHALL freeze all further persistence writes in
     this tab until reload, so that a pending debounced autosave (editor, notes, window
     layout) or any later interaction CANNOT overwrite the restored workspace before the
-    user enters it. The frozen-write guard is per-tab (per JS realm); the system SHALL warn
-    the user to close other GhostOS tabs before restoring, because a second tab shares the
-    same IndexedDB and is not covered by the guard (documented limitation).
+    user enters it. Because importAll writes every owned slice last-writer-wins and the
+    freeze is applied synchronously the instant the import resolves (no awaited gap), a
+    stale autosave cannot land between import completion and the freeze.
+7b. Known limitations (documented, not defects): the frozen-write guard is per-tab (per JS
+    realm), so a SECOND open GhostOS tab sharing the same IndexedDB is NOT covered — the
+    confirm dialog SHALL warn the user to close other tabs before restoring. Restore is not
+    a single atomic transaction across object stores, so a failure mid-write can leave a
+    PARTIAL replacement; failure messaging SHALL say so explicitly and SHALL recommend
+    exporting the current workspace before restoring.
 8. The taskbar SHALL display a connectivity indicator that is responsive and honest: it
    SHALL distinguish network-offline (reassuring, since local features keep working) from
    degraded storage (a genuine "changes will not be saved" warning), SHALL NOT imply the

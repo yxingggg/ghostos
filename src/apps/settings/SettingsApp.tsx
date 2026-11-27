@@ -130,7 +130,7 @@ export function SettingsApp({ props }: AppComponentProps) {
     } catch {
       setRestoreBusy(false);
       push(
-        'Restore failed while writing to storage. Your previous data may be partially replaced — re-import to retry; do not rely on this workspace.',
+        'Restore failed mid-write. Your workspace may be PARTIALLY replaced and inconsistent — do not rely on it. Re-import the backup to retry, and in future export your current workspace before restoring so you can recover it.',
         'error',
       );
       return;
@@ -139,7 +139,7 @@ export function SettingsApp({ props }: AppComponentProps) {
     if (!durable) {
       // Partial/failed restore: NEVER show success. Writes may be inconsistent.
       push(
-        'Restore did not complete — storage is unavailable, so the backup was not durably written. Your workspace was not safely replaced.',
+        'Restore did not complete — storage is unavailable, so the backup was not durably written and your workspace may be partially replaced. Nothing was safely restored. Export your current workspace before trying again.',
         'error',
       );
       return;
@@ -467,15 +467,17 @@ function RestoreDialog({
               enter the restored workspace to reload and re-summon your desktop.
             </p>
           ) : (
-            <p className="mb-2 text-sm text-blood-400">
-              This <strong>replaces</strong> your current GhostOS workspace (files, notes, music,
-              settings, and window layout) in this browser. This cannot be undone — export your
-              current workspace first if you want to keep it.
-            </p>
-            <p className="mb-4 text-xs text-bone-500">
-              For a clean restore, close other GhostOS tabs first: this tab stops saving once the
-              restore succeeds, but another open tab could still write over the restored data.
-            </p>
+            <>
+              <p className="mb-2 text-sm text-blood-400">
+                This <strong>replaces</strong> your current GhostOS workspace (files, notes, music,
+                settings, and window layout) in this browser. It can only be undone if you exported
+                your current workspace first — do that before restoring if you want to keep it.
+              </p>
+              <p className="mb-4 text-xs text-bone-500">
+                For a clean restore, close other GhostOS tabs first: this tab stops saving once the
+                restore succeeds, but another open tab could still write over the restored data.
+              </p>
+            </>
           )}
 
           <div className="flex flex-wrap items-center gap-2">
