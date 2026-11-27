@@ -12,9 +12,9 @@ export function AppIconTile({
   size = 'md',
 }: {
   app: AppDefinition;
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'desktop' | 'md';
 }) {
-  const box = size === 'sm' ? 'h-7 w-7' : 'h-11 w-11';
+  const box = size === 'sm' ? 'h-7 w-7' : size === 'desktop' ? 'h-9 w-9' : 'h-11 w-11';
 
   if (app.TileIcon) {
     const Tile = app.TileIcon;
@@ -26,7 +26,7 @@ export function AppIconTile({
   return (
     <span
       aria-hidden="true"
-      className={`grid shrink-0 place-items-center rounded-xl border border-white/10 shadow-bevel-out ${box} ${size === 'sm' ? 'text-lg' : 'text-2xl'}`}
+      className={`grid shrink-0 place-items-center rounded-xl border border-white/10 shadow-bevel-out ${box} ${size === 'sm' ? 'text-lg' : size === 'desktop' ? 'text-xl' : 'text-2xl'}`}
       style={{
         background: `linear-gradient(145deg, ${accent.from}, ${accent.to})`,
         color: accent.glyph,

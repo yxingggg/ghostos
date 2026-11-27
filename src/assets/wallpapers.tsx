@@ -62,106 +62,170 @@ export const WallpaperCastle: FC<WProps> = ({ className }) => (
   <Scene className={className}>
     <defs>
       <linearGradient id="castle-sky" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#141033" />
-        <stop offset="45%" stopColor="#1e1b4e" />
-        <stop offset="100%" stopColor="#2a2a63" />
+        <stop offset="0%" stopColor="#0f0c2a" />
+        <stop offset="40%" stopColor="#1a1748" />
+        <stop offset="75%" stopColor="#2a2a63" />
+        <stop offset="100%" stopColor="#343a73" />
       </linearGradient>
-      <radialGradient id="castle-moon" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stopColor="#eef3dd" />
-        <stop offset="70%" stopColor="#c7d6b8" />
+      <radialGradient id="castle-moon" cx="42%" cy="38%" r="62%">
+        <stop offset="0%" stopColor="#f6f8e6" />
+        <stop offset="55%" stopColor="#d7e0c4" />
+        <stop offset="85%" stopColor="#b3c2ac" />
         <stop offset="100%" stopColor="#8fa6a0" />
       </radialGradient>
       <radialGradient id="castle-moonhalo" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stopColor="rgba(224,234,205,0.5)" />
-        <stop offset="100%" stopColor="rgba(224,234,205,0)" />
+        <stop offset="0%" stopColor="rgba(226,236,208,0.55)" />
+        <stop offset="60%" stopColor="rgba(160,180,190,0.18)" />
+        <stop offset="100%" stopColor="rgba(160,180,190,0)" />
+      </radialGradient>
+      <linearGradient id="castle-stone" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stopColor="#15122f" />
+        <stop offset="55%" stopColor="#242056" />
+        <stop offset="100%" stopColor="#1a1740" />
+      </linearGradient>
+      <radialGradient id="window-glow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stopColor="rgba(246,200,110,0.9)" />
+        <stop offset="100%" stopColor="rgba(246,200,110,0)" />
+      </radialGradient>
+      <linearGradient id="castle-fog" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="rgba(120,130,200,0)" />
+        <stop offset="100%" stopColor="rgba(120,130,200,0.35)" />
+      </linearGradient>
+      {/* pixel texture: 2px dither grid for a pixel-art feel */}
+      <pattern id="px" width="4" height="4" patternUnits="userSpaceOnUse">
+        <rect width="4" height="4" fill="transparent" />
+        <rect width="2" height="2" fill="rgba(255,255,255,0.02)" />
+        <rect x="2" y="2" width="2" height="2" fill="rgba(0,0,0,0.05)" />
+      </pattern>
+      <radialGradient id="castle-vig" cx="50%" cy="46%" r="70%">
+        <stop offset="60%" stopColor="rgba(0,0,0,0)" />
+        <stop offset="100%" stopColor="rgba(5,4,14,0.5)" />
       </radialGradient>
     </defs>
 
     <rect width="1024" height="640" fill="url(#castle-sky)" />
-    <Stars seed={7} count={90} />
+    <Stars seed={7} count={120} />
+    <Stars seed={19} count={30} color="#8ff7bc" />
 
-    {/* Moon with halo, right of centre */}
-    <circle cx="740" cy="180" r="150" fill="url(#castle-moonhalo)" />
-    <circle cx="740" cy="180" r="92" fill="url(#castle-moon)" />
-    {/* craters */}
-    <circle cx="712" cy="158" r="12" fill="#aebfa6" opacity="0.6" />
-    <circle cx="766" cy="196" r="16" fill="#aebfa6" opacity="0.5" />
-    <circle cx="755" cy="150" r="7" fill="#aebfa6" opacity="0.5" />
+    {/* Moon with layered halo and craters */}
+    <circle cx="742" cy="176" r="170" fill="url(#castle-moonhalo)" />
+    <circle cx="742" cy="176" r="96" fill="url(#castle-moon)" />
+    <g fill="#9fb3a4" opacity="0.5">
+      <circle cx="712" cy="150" r="13" />
+      <circle cx="770" cy="196" r="18" />
+      <circle cx="758" cy="142" r="7" />
+      <circle cx="724" cy="200" r="9" />
+      <circle cx="792" cy="160" r="6" />
+    </g>
+    <circle cx="742" cy="176" r="96" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
 
-    {/* Cloud bands drifting across the moon */}
-    <CloudBand y={120} fill="#3a3a78" opacity={0.85} blocks={[[560,0,120,16],[600,-10,160,20],[700,6,150,18],[820,-4,120,16],[520,18,90,14]]} />
-    <CloudBand y={210} fill="#4a4a8c" opacity={0.75} blocks={[[640,0,200,18],[780,8,160,20],[560,10,120,14],[860,-2,120,16]]} />
-    <CloudBand y={70} fill="#2e2e63" opacity={0.8} blocks={[[120,0,180,16],[60,10,120,14],[280,-6,160,18],[900,6,120,16]]} />
+    {/* Irregular, multi-tone pixel cloud clusters drifting over the moon */}
+    {([
+      { y: 96, fill: '#241f52', op: 0.9, blocks: [[80,0,140,22],[40,14,110,18],[200,-8,120,20],[150,20,90,14]] },
+      { y: 150, fill: '#322c66', op: 0.85, blocks: [[560,0,150,24],[640,-12,120,20],[700,10,170,22],[820,-2,120,18],[520,18,100,16]] },
+      { y: 232, fill: '#423c80', op: 0.8, blocks: [[600,0,220,22],[760,10,180,24],[540,12,130,16],[880,-4,120,18]] },
+      { y: 70, fill: '#1d1a45', op: 0.9, blocks: [[300,0,180,18],[420,10,150,16],[900,6,130,18],[980,-4,80,14]] },
+      { y: 300, fill: '#4a4590', op: 0.55, blocks: [[640,0,260,20],[840,8,160,18]] },
+    ] as const).map((c, i) => (
+      <CloudBand key={i} y={c.y} fill={c.fill} opacity={c.op} blocks={c.blocks as Array<[number,number,number,number]>} />
+    ))}
 
-    {/* Distant hill + faint spires (left depth) */}
-    <path d="M0 420 L0 640 L420 640 L420 440 Q300 410 200 420 Q100 408 0 420 Z" fill="#191636" />
-    <g fill="#201d45" opacity="0.8">
-      <rect x="70" y="360" width="10" height="70" />
-      <path d="M68 360 l7 -22 l7 22 z" />
-      <rect x="110" y="376" width="8" height="54" />
-      <path d="M108 376 l6 -18 l6 18 z" />
+    {/* Distant mountain ridge + faint ghost spires (left depth) */}
+    <path d="M0 410 L120 352 L230 404 L360 360 L470 420 L470 640 L0 640 Z" fill="#171433" opacity="0.9" />
+    <g fill="#1d1a44" opacity="0.7">
+      <rect x="64" y="350" width="9" height="66" /><path d="M62 350 l7 -20 l7 20 z" />
+      <rect x="104" y="366" width="7" height="50" /><path d="M102 366 l5 -16 l5 16 z" />
+      <rect x="138" y="372" width="6" height="44" /><path d="M136 372 l5 -14 l5 14 z" />
     </g>
 
-    {/* Cliff the castle sits on */}
-    <path d="M120 640 L120 470 Q200 440 300 452 Q400 440 470 470 L470 640 Z" fill="#14122c" />
-    <path d="M120 640 L120 500 Q210 478 300 488 Q380 480 470 505 L470 640 Z" fill="#0f0d24" />
-
-    {/* Castle silhouette with towers */}
-    <g fill="#201d47" stroke="#2c2960" strokeWidth="2">
-      {/* main keep */}
-      <rect x="250" y="250" width="70" height="210" />
-      {/* tall central tower */}
-      <rect x="300" y="170" width="46" height="290" />
-      <path d="M298 170 l25 -42 l25 42 z" fill="#2c2960" />
-      {/* left wing */}
-      <rect x="190" y="300" width="70" height="160" />
-      <path d="M188 300 l35 -34 l35 34 z" fill="#2c2960" />
-      {/* right wing */}
-      <rect x="338" y="296" width="70" height="164" />
-      <path d="M336 296 l35 -30 l35 30 z" fill="#2c2960" />
-      {/* side turret */}
-      <rect x="406" y="330" width="34" height="130" />
-      <path d="M404 330 l19 -26 l19 26 z" fill="#2c2960" />
+    {/* Cliff with rock shading + cast shadow */}
+    <path d="M110 640 L110 468 Q190 436 300 450 Q400 438 480 470 L480 640 Z" fill="#12102a" />
+    <path d="M110 640 L110 496 Q200 474 300 484 Q390 476 480 504 L480 640 Z" fill="#0d0b20" />
+    {/* rock strata highlights */}
+    <g stroke="#201c48" strokeWidth="2" opacity="0.6" fill="none">
+      <path d="M130 520 Q230 502 330 512" />
+      <path d="M150 560 Q260 544 380 556" />
+      <path d="M120 590 Q250 576 400 588" />
     </g>
-    {/* flag */}
+
+    {/* Castle — layered masses with lit (left) and shadow (right) faces */}
     <g>
-      <rect x="322" y="110" width="2" height="22" fill="#cfc7df" />
-      <path d="M324 112 l16 6 l-16 6 z" fill="#c0392b" />
+      {/* back towers (further, darker) */}
+      <rect x="196" y="286" width="56" height="178" fill="#161338" />
+      <path d="M194 286 l30 -30 l30 30 z" fill="#1c1947" />
+      <rect x="402" y="320" width="40" height="144" fill="#161338" />
+      <path d="M400 320 l22 -24 l22 24 z" fill="#1c1947" />
+
+      {/* main keep */}
+      <rect x="248" y="244" width="78" height="222" fill="url(#castle-stone)" />
+      <rect x="248" y="244" width="14" height="222" fill="#2c2866" opacity="0.7" />
+      <rect x="312" y="244" width="14" height="222" fill="#0e0c26" opacity="0.6" />
+      {/* battlements */}
+      <g fill="#242056">
+        {[248,262,276,290,304,318].map((x) => <rect key={x} x={x} y="238" width="8" height="10" />)}
+      </g>
+
+      {/* tall central tower */}
+      <rect x="300" y="150" width="50" height="316" fill="url(#castle-stone)" />
+      <rect x="300" y="150" width="10" height="316" fill="#312c72" opacity="0.7" />
+      <rect x="340" y="150" width="10" height="316" fill="#0e0c26" opacity="0.6" />
+      <path d="M296 150 l29 -46 l29 46 z" fill="#2a2666" />
+      <path d="M325 104 l0 46 l29 0 z" fill="#17143a" />
+
+      {/* left wing */}
+      <rect x="184" y="298" width="74" height="168" fill="#1d1a44" />
+      <path d="M182 298 l38 -34 l38 34 z" fill="#242056" />
+      {/* right wing */}
+      <rect x="340" y="296" width="74" height="170" fill="#17143a" />
+      <path d="M338 296 l38 -30 l38 30 z" fill="#1d1a44" />
     </g>
 
-    {/* Glowing windows */}
-    <g fill="#f4c66a">
-      <rect x="315" y="210" width="8" height="12" />
-      <rect x="327" y="210" width="8" height="12" />
-      <rect x="315" y="250" width="8" height="12" />
-      <rect x="327" y="250" width="8" height="12" />
-      <rect x="268" y="300" width="8" height="12" />
-      <rect x="296" y="300" width="8" height="12" />
-      <rect x="210" y="340" width="8" height="12" />
-      <rect x="230" y="340" width="8" height="12" />
-      <rect x="356" y="330" width="8" height="12" />
-      <rect x="378" y="330" width="8" height="12" />
-      {/* big arched gate glow */}
-      <rect x="286" y="408" width="24" height="40" rx="10" opacity="0.9" />
-    </g>
-    <g fill="#f4c66a" opacity="0.18">
-      <circle cx="298" cy="430" r="40" />
-    </g>
+    {/* flag */}
+    <rect x="324" y="86" width="2" height="22" fill="#cfc7df" />
+    <path d="M326 88 l18 7 l-18 7 z" fill="#c0392b" />
 
-    {/* Foreground pines */}
-    <g fill="#0a0a1c">
-      {[-10, 40, 92, 150, 210, 980, 930, 880, 820, 760, 700].map((x, i) => (
-        <g key={i} transform={`translate(${x} ${540 - (i % 3) * 14})`}>
-          <rect x="7" y="70" width="6" height="40" />
-          <path d="M10 -6 L28 60 L-8 60 Z" />
-          <path d="M10 18 L30 84 L-10 84 Z" />
-        </g>
-      ))}
-    </g>
+    {/* Window glows (soft halo + bright core) */}
+    {([
+      [318,204],[332,204],[318,250],[332,250],
+      [266,316],[290,316],[206,348],[228,348],
+      [360,340],[384,340],[318,300],[332,300],
+    ] as const).map(([x,y],i) => (
+      <g key={i}>
+        <circle cx={x+4} cy={y+6} r="16" fill="url(#window-glow)" />
+        <rect x={x} y={y} width="8" height="13" fill="#ffe3a0" />
+        <rect x={x+2} y={y+2} width="4" height="9" fill="#fff3d0" />
+      </g>
+    ))}
+    {/* lit arched gate */}
+    <circle cx="300" cy="438" r="30" fill="url(#window-glow)" />
+    <path d="M288 466 v-24 a12 12 0 0 1 24 0 v24 z" fill="#ffdf9a" />
 
-    {/* Fog near the ground */}
-    <rect x="0" y="560" width="1024" height="80" fill="#2a2a63" opacity="0.25" />
-    <rect x="0" y="590" width="1024" height="50" fill="#3a3a78" opacity="0.2" />
+    {/* Layered foreground pines (3 depth tones) */}
+    {([
+      { tone: '#151334', base: 470, scale: 0.8, xs: [20,70,118,170,940,890,840] },
+      { tone: '#0d0b22', base: 512, scale: 1.0, xs: [-6,54,110,175,232,1002,952,900,842,784] },
+      { tone: '#070615', base: 560, scale: 1.25, xs: [-20,44,120,200,1010,930,850,770] },
+    ] as const).map((layer, li) => (
+      <g key={li} fill={layer.tone}>
+        {layer.xs.map((x, i) => (
+          <g key={i} transform={`translate(${x} ${layer.base}) scale(${layer.scale})`}>
+            <rect x="8" y="64" width="6" height="42" />
+            <path d="M11 -8 L30 56 L-8 56 Z" />
+            <path d="M11 16 L33 84 L-11 84 Z" />
+            <path d="M11 40 L36 110 L-14 110 Z" />
+          </g>
+        ))}
+      </g>
+    ))}
+
+    {/* Atmospheric fog layers, lit slightly by the moon */}
+    <rect x="0" y="470" width="1024" height="170" fill="url(#castle-fog)" />
+    <CloudBand y={540} fill="#4a4f94" opacity={0.18} blocks={[[0,0,320,26],[280,10,300,22],[560,-4,320,26],[820,8,260,20]]} />
+    <CloudBand y={590} fill="#5a5fa6" opacity={0.16} blocks={[[120,0,360,24],[480,8,360,22],[820,-2,260,20]]} />
+
+    {/* global pixel texture + gentle vignette */}
+    <rect width="1024" height="640" fill="url(#px)" />
+    <rect width="1024" height="640" fill="url(#castle-vig)" />
   </Scene>
 );
 

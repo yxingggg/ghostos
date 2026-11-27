@@ -90,12 +90,13 @@ export function Desktop() {
         <GhostMascot className="h-16 w-16 drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]" float={floatMascot} />
       </div>
 
-      {/* Desktop icon grid — column-flow that wraps within the available height
-          (above the taskbar) so icons never clip behind it. */}
+      {/* Desktop icon grid — compact icons in a column-flow grid bounded well
+          above the taskbar (h-11 = 2.75rem). It wraps into new columns as the
+          viewport shrinks, so every icon and label stays visible. */}
       <div
         role="grid"
         aria-label="Desktop icons"
-        className="absolute left-3 top-3 grid max-h-[calc(100%-4rem)] grid-flow-col grid-rows-[repeat(auto-fill,minmax(5.5rem,max-content))] content-start gap-2"
+        className="absolute left-2 top-2 grid max-h-[calc(100%-4.5rem)] auto-cols-max grid-flow-col grid-rows-[repeat(auto-fill,4.75rem)] content-start justify-start gap-x-1 gap-y-0.5"
         onKeyDown={(e) => {
           if (e.key === 'ArrowDown') {
             e.preventDefault();

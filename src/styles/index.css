@@ -86,19 +86,19 @@ body {
   inset: 0;
   pointer-events: none;
   z-index: 9999;
-  /* Significantly reduced intensity: faint, wider-spaced scanlines and a soft
-     vignette so the wallpaper art stays crisp and readable. */
+  /* Very subtle: barely-there scanlines on a wide pitch and a gentle vignette,
+     so the pixel-art wallpaper stays crisp. */
   background:
     repeating-linear-gradient(
       0deg,
-      rgba(0, 0, 0, 0.06) 0px,
-      rgba(0, 0, 0, 0.06) 1px,
+      rgba(0, 0, 0, 0.035) 0px,
+      rgba(0, 0, 0, 0.035) 1px,
       transparent 1px,
-      transparent 4px
+      transparent 5px
     ),
-    radial-gradient(circle at center, transparent 68%, rgba(0, 0, 0, 0.3) 100%);
+    radial-gradient(circle at center, transparent 76%, rgba(0, 0, 0, 0.22) 100%);
   mix-blend-mode: multiply;
-  opacity: 0.6;
+  opacity: 0.4;
 }
 
 .crt-glow {

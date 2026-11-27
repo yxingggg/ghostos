@@ -299,6 +299,21 @@
   - Preserves functionality and user preferences (wallpaper now persists correctly).
   - _Requirements: 11.1, 11.2, 11.3, 11.5, 12.3_
 
+- [ ] 30. Desktop polish pass 2 (grid, wallpaper detail, CRT, raster assets)
+  - Compact desktop icons (smaller tiles, tighter spacing, 2-line label clamp); grid is a
+    viewport-aware column-flow bounded above the taskbar so nothing (incl. DeadWave) clips.
+    Fixed a z-index regression (grid was above windows).
+  - Richer Haunted Castle scene: pixel dither texture, window-glow gradients, lit/shadow
+    tower faces, battlements, cliff strata + shadow, irregular multi-tone cloud clusters,
+    layered depth pines (3 tones), moon craters/halo, atmospheric fog, vignette.
+  - CRT reduced further (0.4 opacity, ~3.5% scanlines on a 5px pitch, softer vignette).
+  - Optional local PNG/WebP wallpaper override (src/assets/wallpapers/ + wallpaperAssets.ts
+    via import.meta.glob) so original raster artwork can be dropped in later; SVG is the
+    offline fallback. No file required.
+  - Playwright visual regression: asserts every desktop icon stays above the taskbar;
+    wallpaper screenshots at multiple resolutions.
+  - _Requirements: 11.1, 11.3, 11.5, 12.3_
+
 > Verification (CI run on commit ed4fb38): build-and-test green — 160 unit/integration/
 > property tests across 20 files, type-check, lint, production build; e2e job green — 5
 > Playwright tests passed in real Chromium (create→open→edit→save→reload→persist;

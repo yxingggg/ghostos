@@ -43,8 +43,11 @@ confirm it in a browser. See [Limitations](#limitations-and-remaining-verificati
 
 - **Premium haunted look** — an original GhostOS logo and ghost mascot ("Wisp"), distinctive
   illustrated app icons, four detailed original SVG scene wallpapers (Haunted Castle,
-  Blood Moon Graveyard, Misty Haunted Forest, Supernatural Void — with layered depth: moon,
-  stars, fog, silhouettes), polished window chrome, and smooth reduced-motion-aware animations.
+  Blood Moon Graveyard, Misty Haunted Forest, Supernatural Void — detailed scenes with
+  pixel texture, moon, stars, lit windows, cliffs, layered pines, and atmospheric fog),
+  polished window chrome, and smooth reduced-motion-aware animations. Original high-quality
+  **PNG/WebP wallpapers** can be dropped into `src/assets/wallpapers/` to override the SVG
+  scenes (bundled locally, still offline).
 - **First-launch welcome** — a branded intro that seeds sample files into your filesystem;
   shown once.
 - **Ghost Memory** — your desktop, files, notes, and open windows are restored automatically

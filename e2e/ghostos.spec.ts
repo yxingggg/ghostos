@@ -391,3 +391,27 @@ test('visual: capture wallpapers at multiple resolutions', async ({ page }, test
     await page.evaluate(() => indexedDB.deleteDatabase('ghostos'));
   }
 });
+
+test('visual regression: every desktop icon stays above the taskbar', async ({ page }) => {
+  // Small/short viewport is the worst case for icon clipping.
+  await page.setViewportSize({ width: 900, height: 560 });
+  await boot(page);
+
+  const taskbar = page.getByRole('button', { name: /start menu/i });
+  const tb = await taskbar.boundingBox();
+  expect(tb).not.toBeNull();
+  const taskbarTop = tb ? tb.y : 560;
+
+  const grid = page.getByRole('grid', { name: /desktop icons/i });
+  const cells = await grid.getByRole('gridcell').all();
+  expect(cells.length).toBeGreaterThan(0);
+  for (const cell of cells) {
+    const b = await cell.boundingBox();
+    expect(b).not.toBeNull();
+    if (b) {
+      // The whole icon (including its label) must sit above the taskbar.
+      expect(b.y + b.height).toBeLessThanOrEqual(taskbarTop + 1);
+      expect(b.x).toBeGreaterThanOrEqual(-1);
+    }
+  }
+});
