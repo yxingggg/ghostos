@@ -161,16 +161,38 @@ test('Bug 1: an imported local audio file actually plays (currentTime advances)'
   await track.click();
   await expect(dw.getByRole('button', { name: 'Pause' })).toBeVisible({ timeout: 10_000 });
 
-  // Verify REAL playback: the <audio> element's currentTime must advance.
+  // Verify REAL playback: currentTime advances, element is playing, and crucially
+  // it is NOT muted (the root cause was the music element being muted by default).
   const audio = dw.locator('audio');
   await expect(audio).toHaveCount(1);
-  const t0 = await audio.evaluate((el) => (el as HTMLAudioElement).currentTime);
+  const state0 = await audio.evaluate((el) => {
+    const a = el as HTMLAudioElement;
+    return { t: a.currentTime, muted: a.muted, volume: a.volume, paused: a.paused };
+  });
+  expect(state0.muted).toBe(false);
+  expect(state0.volume).toBeGreaterThan(0);
   await page.waitForTimeout(1200);
   const t1 = await audio.evaluate((el) => (el as HTMLAudioElement).currentTime);
-  expect(t1).toBeGreaterThan(t0);
-  // And the element is genuinely playing (not paused/ended).
+  expect(t1).toBeGreaterThan(state0.t);
   const paused = await audio.evaluate((el) => (el as HTMLAudioElement).paused);
   expect(paused).toBe(false);
+});
+
+test('Bug 1b: a demo track plays unmuted with advancing time', async ({ page }) => {
+  await boot(page);
+  await launch(page, 'DeadWave');
+  const dw = page.getByRole('dialog', { name: /deadwave/i });
+  await dw.getByRole('button', { name: /midnight transmission/i }).first().click();
+  await expect(dw.getByRole('button', { name: 'Pause' })).toBeVisible({ timeout: 10_000 });
+  const audio = dw.locator('audio');
+  const s0 = await audio.evaluate((el) => {
+    const a = el as HTMLAudioElement;
+    return { t: a.currentTime, muted: a.muted };
+  });
+  expect(s0.muted).toBe(false);
+  await page.waitForTimeout(1000);
+  const t1 = await audio.evaluate((el) => (el as HTMLAudioElement).currentTime);
+  expect(t1).toBeGreaterThan(s0.t);
 });
 
 test('Bug 2: DeadWave controls stay reachable when the window is small', async ({ page }) => {
@@ -226,4 +248,41 @@ test('Bug 3: Tomb Explorer overflow menu shows and its actions work', async ({ p
   // that collapses into the overflow at this width; it creates untitled.txt.
   await menu.getByRole('menuitem', { name: 'New File' }).click();
   await expect(explorer.getByRole('button', { name: 'untitled.txt' })).toBeVisible();
+});
+
+// --- Spectral Viewer ---
+
+/** Launch an app from the Start menu (works for apps not shown on the desktop). */
+async function launchFromStart(page: Page, appName: string): Promise<void> {
+  await page.getByRole('button', { name: /start menu/i }).click();
+  const menu = page.getByRole('menu', { name: /start menu/i });
+  await menu.getByRole('menuitem', { name: appName }).click();
+  await expect(page.getByRole('dialog', { name: new RegExp(appName, 'i') }).first()).toBeVisible();
+}
+
+test('Spectral Viewer: load the original sample image, then zoom and rotate', async ({
+  page,
+}) => {
+  await boot(page);
+  await launchFromStart(page, 'Spectral Viewer');
+  const viewer = page.getByRole('dialog', { name: /spectral viewer/i });
+
+  // Empty state → conjure the bundled original sample.
+  await viewer.getByRole('button', { name: /view sample image/i }).click();
+  const img = viewer.locator('img');
+  await expect(img).toBeVisible();
+
+  // Actual size, then zoom in and rotate — controls must affect the transform.
+  await viewer.getByRole('button', { name: 'Actual size' }).click();
+  await viewer.getByRole('button', { name: 'Zoom in' }).click();
+  await expect(img).toHaveAttribute('style', /scale\(/);
+  await viewer.getByRole('button', { name: 'Rotate' }).click();
+  await expect(img).toHaveAttribute('style', /rotate\(90deg\)/);
+
+  // The sample is now a real VFS file — it shows up in Tomb Explorer.
+  await launch(page, 'Tomb Explorer');
+  const explorer = page.getByRole('dialog', { name: /tomb explorer/i });
+  await expect(explorer.getByRole('button', { name: /spectral-sigil\.svg/i })).toBeVisible({
+    timeout: 10_000,
+  });
 });

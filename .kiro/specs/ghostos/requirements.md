@@ -153,7 +153,7 @@ edit their contents in the right application.
 5. WHEN a user edits and saves a file opened from the explorer THEN the system SHALL write the changes back to the SAME VFS file (by its identifier) and SHALL NOT create an unrelated note.
 6. WHEN a user opens a newly created empty text file THEN the system SHALL open it without error and allow editing and saving.
 7. WHEN a user opens a supported audio file THEN the system SHALL open it in DeadWave and begin playback where compatible.
-8. WHEN a user opens a supported image file THEN the system SHALL display a preview in an image viewer.
+8. WHEN a user opens a supported image file THEN the system SHALL display it in Spectral Viewer, which SHALL support opening images from the VFS, importing local files and drag-and-drop (stored in the VFS so they also appear in Tomb Explorer), zoom, rotation, fit-to-window, and actual-size, and SHALL offer an original sample image with a helpful empty state.
 9. IF a file's type is unsupported THEN the system SHALL display an informative message and SHALL NOT fail silently.
 
 ### Requirement 7c: File management context menu

@@ -52,7 +52,9 @@ confirm it in a browser. See [Limitations](#limitations-and-remaining-verificati
   into the right app by type.
 - **GraveNotes** — a persistent note editor (debounced autosave, ordered by recency) that
   also opens and edits text/Markdown files from the filesystem in place.
-- **Spectral Viewer** — previews image files opened from Tomb Explorer.
+- **Spectral Viewer** — view images from the filesystem, import local files or drag-and-drop
+  (they also land in Tomb Explorer), with zoom, rotate, fit-to-window, actual-size, and an
+  original bundled sample image.
 - **Phantom Terminal** — a simulated shell operating **only** on the virtual file system
   (`help`, `ls`, `cd`, `cat`, `mkdir`, `touch`, `rm`, `echo`, `clear`, `pwd`, `whoami`)
   with command history.

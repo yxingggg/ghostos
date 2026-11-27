@@ -243,6 +243,25 @@
     overflow menu opens and a collapsed action executes. _Requirements: 15.3_
   - _Requirements: 9, 12.3, 15.3_
 
+- [ ] 27. DeadWave playback root cause + Spectral Viewer features
+  - 27.1 Root cause of silent playback: the `<audio>` element was muted by default
+    because `el.muted = muted || soundOff` tied music to the global SFX setting
+    (off by default). Fix: music has its own mute only (`el.muted = muted`); SFX
+    setting no longer affects the player. Also: always-mounted `<audio>` (stable
+    ref; conditional mount left the ref null at play time), native playback first
+    with the Web Audio analyser attached best-effort afterward (visualizer failure
+    can't block audio), safer object-URL lifecycle, specific playback error toasts.
+    _Requirements: 9.2, 9.5, 9.7_
+  - 27.2 Playwright: imported WAV + demo track play with `muted===false`,
+    `volume>0`, and advancing `currentTime`. _Requirements: 15.3_
+  - 27.3 Spectral Viewer: Open Image (from VFS), local Import + drag-and-drop
+    (stored in the VFS so images appear in Tomb Explorer), zoom in/out, rotate,
+    fit-to-window, actual-size; original bundled sample image + empty state;
+    launchable from the Start menu. _Requirements: 7b.8, 9-analogous_
+  - 27.4 Playwright: load sample → zoom/rotate transform applied → sample appears
+    in Tomb Explorer. _Requirements: 15.3_
+  - _Requirements: 9, 7b_
+
 > Verification (CI run on commit ed4fb38): build-and-test green — 160 unit/integration/
 > property tests across 20 files, type-check, lint, production build; e2e job green — 5
 > Playwright tests passed in real Chromium (create→open→edit→save→reload→persist;

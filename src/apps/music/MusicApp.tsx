@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AppComponentProps } from '../registry';
 import { useMusic } from '../../state/musicStore';
-import { useSettings } from '../../state/settingsStore';
 import { useVfs } from '../../state/vfsStore';
 import { useToasts } from '../../state/toastStore';
 import { DEMO_TRACKS } from '../../core/audio/demoTracks';
@@ -30,7 +29,6 @@ export function MusicApp({ props }: AppComponentProps) {
   const cycleRepeat = useMusic((s) => s.cycleRepeat);
   const next = useMusic((s) => s.next);
   const prev = useMusic((s) => s.prev);
-  const soundOff = !useSettings((s) => s.sound);
   const vfsNode = useVfs((s) => s.node);
   const readBinary = useVfs((s) => s.readBinary);
   const pushToast = useToasts((s) => s.push);
@@ -71,9 +69,11 @@ export function MusicApp({ props }: AppComponentProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vfsFileId]);
 
-  // Resolve a blob URL for the current track; revoke the previous one.
+  // Resolve a blob URL for the current track. The active URL is tracked in a ref
+  // and only revoked when it is REPLACED or on unmount — never while it is the
+  // element's current src (revoking the in-use URL would stop playback).
+  const urlRef = useRef<string | null>(null);
   useEffect(() => {
-    let revoked: string | null = null;
     let cancelled = false;
     if (currentId) {
       void getTrackUrl(currentId).then((u) => {
@@ -81,36 +81,47 @@ export function MusicApp({ props }: AppComponentProps) {
           if (u) URL.revokeObjectURL(u);
           return;
         }
-        setUrl((prevUrl) => {
-          if (prevUrl) URL.revokeObjectURL(prevUrl);
-          return u;
-        });
-        revoked = u;
+        if (urlRef.current && urlRef.current !== u) URL.revokeObjectURL(urlRef.current);
+        urlRef.current = u;
+        setUrl(u);
       });
     } else {
-      setUrl((prevUrl) => {
-        if (prevUrl) URL.revokeObjectURL(prevUrl);
-        return null;
-      });
+      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+      urlRef.current = null;
+      setUrl(null);
     }
     return () => {
       cancelled = true;
-      if (revoked) URL.revokeObjectURL(revoked);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentId]);
 
-  // Drive play/pause. Building the Web Audio graph (for the visualizer) and
-  // resuming the AudioContext happens here, on the user-gesture-driven `playing`
-  // transition, so audio is never left routed through a suspended context.
+  // Revoke the last object URL on unmount.
+  useEffect(() => {
+    return () => {
+      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+    };
+  }, []);
+
+  // Drive play/pause. Playback goes through the native <audio> element FIRST and
+  // never depends on Web Audio; the analyser (for the visualizer only) is
+  // attached opportunistically afterward and its failure can't block audio.
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
     if (playing) {
-      void ensureGraph(el)
-        .then((a) => {
-          if (a) setAnalyser(a);
-          return el.play();
+      el
+        .play()
+        .then(() => {
+          // Best-effort: attach the analyser for the visualizer. If this throws
+          // or the context is blocked, audio keeps playing regardless.
+          void ensureGraph(el)
+            .then((a) => {
+              if (a) setAnalyser(a);
+            })
+            .catch(() => {
+              /* visualizer unavailable; playback continues */
+            });
         })
         .catch(() => {
           setPlaying(false);
@@ -122,13 +133,14 @@ export function MusicApp({ props }: AppComponentProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playing, url]);
 
-  // Apply volume/mute to the element.
+  // Apply the player's own volume/mute to the element. (Deliberately NOT gated
+  // by the global SFX sound setting — that only governs UI click sounds.)
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
     el.volume = volume;
-    el.muted = muted || soundOff;
-  }, [volume, muted, soundOff, url]);
+    el.muted = muted;
+  }, [volume, muted, url]);
 
   async function onAddFiles(files: FileList | File[] | null) {
     if (!files) return;
@@ -340,29 +352,36 @@ export function MusicApp({ props }: AppComponentProps) {
         </div>
       )}
 
-      {url && (
-        <audio
-          ref={(el) => {
-            audioRef.current = el;
-          }}
-          src={url}
-          onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}
-          onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
-          onError={() => pushToast('This audio file could not be played (unsupported or corrupted).', 'error')}
-          onEnded={() => {
-            if (repeat === 'one') {
-              if (audioRef.current) {
-                audioRef.current.currentTime = 0;
-                void audioRef.current.play().catch(() => setPlaying(false));
-              }
-            } else if (repeat === 'all' || tracks.length > 1) {
-              next();
-            } else {
-              setPlaying(false);
+      {/* The audio element is ALWAYS mounted so its ref is stable; src is bound
+          reactively. Conditionally mounting it caused the ref to be null when
+          play() ran, so nothing played. */}
+      <audio
+        ref={audioRef}
+        {...(url ? { src: url } : {})}
+        preload="auto"
+        onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}
+        onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+        onError={() => {
+          if (!url) return;
+          pushToast(
+            `Could not play "${current?.name ?? 'this file'}" — the format may be unsupported or the file is corrupted.`,
+            'error',
+          );
+          setPlaying(false);
+        }}
+        onEnded={() => {
+          if (repeat === 'one') {
+            if (audioRef.current) {
+              audioRef.current.currentTime = 0;
+              void audioRef.current.play().catch(() => setPlaying(false));
             }
-          }}
-        />
-      )}
+          } else if (repeat === 'all' || tracks.length > 1) {
+            next();
+          } else {
+            setPlaying(false);
+          }
+        }}
+      />
     </div>
   );
 }
