@@ -120,52 +120,56 @@
     manually in a browser at https://yxingggg.github.io/ghostos/.
   - _Requirements: 14.1–14.3_
 
-- [ ] 19. Fix: open files from Tomb Explorer (post-submission bug report)
+- [x] 19. Fix: open files from Tomb Explorer (post-submission bug report)
   - Root cause: Explorer's double-click handler only navigated folders; files had no open
     path, and GraveNotes only read its own notesStore, so a file (esp. a newly created one)
     could not be opened.
-  - [ ] 19.1 Add a pure `core/vfs/fileType.ts` (classify by extension then MIME; associate
+  - [x] 19.1 Add a pure `core/vfs/fileType.ts` (classify by extension then MIME; associate
     to a registered app) + unit tests. _Requirements: 7b.1, 7b.3, 7b.9_
-  - [ ] 19.2 Explorer: double-click and Enter open files; folders navigate; right-click
+  - [x] 19.2 Explorer: double-click and Enter open files; folders navigate; right-click
     context menu (Open, Open with, Rename, Delete, Duplicate, Download, Properties), all
     functional; no placeholder actions. _Requirements: 7b.1, 7b.2, 7c.1–7c.7_
-  - [ ] 19.3 GraveNotes: when opened with `props.vfsFileId`, edit that VFS file in place
+  - [x] 19.3 GraveNotes: when opened with `props.vfsFileId`, edit that VFS file in place
     (read on open, save back to the same id); empty files open and edit without error;
     standalone notes unchanged. _Requirements: 7b.4, 7b.5, 7b.6_
-  - [ ] 19.4 DeadWave opens VFS audio (`addTrackFromVfs`, de-duped); new `imageviewer` app
+  - [x] 19.4 DeadWave opens VFS audio (`addTrackFromVfs`, de-duped); new `imageviewer` app
     previews images; unsupported types show a toast. _Requirements: 7b.7, 7b.8, 7b.9_
-  - [ ] 19.5 `vfsStore.duplicate`/`readBinary`; pure `nodeProperties` helper + tests.
+  - [x] 19.5 `vfsStore.duplicate`/`readBinary`; pure `nodeProperties` helper + tests.
     _Requirements: 7c.4, 7c.5, 7c.6_
-  - [ ] 19.6 Regression/integration tests for the full workflow: create → open → edit →
+  - [x] 19.6 Regression/integration tests for the full workflow: create → open → edit →
     save → close → reopen → verify content → restore persisted workspace.
     _Requirements: 15.3_
   - Registry-driven: no application-specific branching added to the window manager. No
     IndexedDB reset or breaking persistence change. Existing files and standalone
     GraveNotes behavior preserved.
+  - Verified: CI run 45960707510 (commit 2d4f976) green — 146 tests / 18 files, build OK.
   - _Requirements: 7b, 7c_
 
-- [ ] 20. Spirit Assistant: offline help mode + robust online AI mode
+- [x] 20. Spirit Assistant: offline help mode + robust online AI mode
   - Root cause of "No endpoint configured": the assistant had only an online mode that
     required configuration, with no default offline capability.
-  - [ ] 20.1 Pure `core/assistant/offlineHelp.ts`: local knowledge base + keyword matcher
+  - [x] 20.1 Pure `core/assistant/offlineHelp.ts`: local knowledge base + keyword matcher
     + suggested questions + graceful fallback; labeled as non-generative. Unit tested.
     _Requirements: 10.1, 10.2_
-  - [ ] 20.2 Pure `core/assistant/providers.ts`: OpenAI/Gemini/custom presets,
+  - [x] 20.2 Pure `core/assistant/providers.ts`: OpenAI/Gemini/custom presets,
     `buildRequest`/`parseResponse`, HTTP + network/timeout/CORS error classification,
     HTTPS-with-key guard. Unit tested. _Requirements: 10.4, 10.6, 10.9_
-  - [ ] 20.3 `apps/assistant/client.ts`: fetch wrapper with AbortController timeout; never
+  - [x] 20.3 `apps/assistant/client.ts`: fetch wrapper with AbortController timeout; never
     throws. _Requirements: 10.6_
-  - [ ] 20.4 AssistantApp: Offline Spirit tab (default) with clickable suggestions; Online
+  - [x] 20.4 AssistantApp: Offline Spirit tab (default) with clickable suggestions; Online
     AI tab (opt-in) with chat, provider banner, and "Open Assistant Settings" navigation.
     _Requirements: 10.1–10.3, 10.5, 10.10_
-  - [ ] 20.5 Settings: provider preset selector, endpoint/model/key fields, Test
+  - [x] 20.5 Settings: provider preset selector, endpoint/model/key fields, Test
     Connection button with success/error, and an `assistant-settings` anchor.
     _Requirements: 10.4, 10.5_
-  - [ ] 20.6 settingsStore: `provider`; API key session-only (stripped from persist and
+  - [x] 20.6 settingsStore: `provider`; API key session-only (stripped from persist and
     export); cleared on provider/endpoint change. Unit tested. _Requirements: 10.7, 10.8_
-  - [ ] 20.7 Tests: offline matcher, provider formatting/parse/errors, credential handling,
+  - [x] 20.7 Tests: offline matcher, provider formatting/parse/errors, credential handling,
     and AssistantApp integration (offline answers; online opt-in → open settings).
     _Requirements: 15.3_
   - Offline mode works with no external dependency or network. API keys never hardcoded or
     committed. Registry-driven settings navigation (no WM branching).
+  - Verified: CI run 45960707510 (commit 2d4f976) green. NOT verified: live connectivity to
+    a real OpenAI/Gemini provider was not exercised (no credentials/outbound access in CI
+    or the sandbox); provider request/response/error logic is covered by unit tests only.
   - _Requirements: 10_
