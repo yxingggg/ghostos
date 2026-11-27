@@ -31,7 +31,8 @@ jobs:
         run: npm run lint
 
       - name: Test
-        run: npm test
+        # Emit JSON so the job summary can report exact test counts.
+        run: npm test -- --reporter=dot --reporter=json --outputFile=vitest-report.json
 
       - name: Build
         run: npm run build
@@ -42,6 +43,47 @@ jobs:
           name: ghostos-dist
           path: dist
           if-no-files-found: error
+
+      - name: Job summary (tests, build, wallpapers)
+        if: always()
+        run: |
+          {
+            echo "## GhostOS CI — build-and-test"
+            echo ""
+            echo "- Commit: \`${GITHUB_SHA::7}\`"
+            if [ -f vitest-report.json ]; then
+              node -e '
+                try {
+                  const r = require("./vitest-report.json");
+                  const t = r.numTotalTests ?? 0, p = r.numPassedTests ?? 0, f = r.numFailedTests ?? 0;
+                  const files = r.numTotalTestSuites ?? (r.testResults?.length ?? 0);
+                  console.log(`- Unit/integration tests: **${p}/${t} passed**` + (f ? ` (${f} failed)` : "") + ` across ${files} files`);
+                } catch (e) { console.log("- Unit tests: report unavailable"); }
+              ' >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "- Unit tests: no report produced"
+            fi
+            if [ -d dist ]; then
+              echo "- Production build: **OK** ($(find dist -type f | wc -l) files)"
+            else
+              echo "- Production build: **missing dist/**"
+            fi
+            echo ""
+            echo "### Wallpaper assets (raster)"
+            for id in castle graveyard forest void; do
+              src="src/assets/wallpapers/$id.webp"
+              if [ -f "$src" ]; then
+                bundled=$(find dist/assets -name "$id-*.webp" 2>/dev/null | head -1)
+                if [ -n "$bundled" ]; then
+                  echo "- \`$id.webp\`: source ✓, bundled ✓ ($(du -h "$bundled" | cut -f1))"
+                else
+                  echo "- \`$id.webp\`: source ✓, bundled ✗ (SVG fallback will render)"
+                fi
+              else
+                echo "- \`$id\`: no raster (original SVG scene renders)"
+              fi
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
 
   e2e:
     runs-on: ubuntu-latest
@@ -62,3 +104,12 @@ jobs:
 
       - name: Run end-to-end browser tests
         run: npm run test:e2e
+
+      - name: Job summary (e2e)
+        if: always()
+        run: |
+          {
+            echo "## GhostOS CI — e2e (Playwright / Chromium)"
+            echo "- Commit: \`${GITHUB_SHA::7}\`"
+            echo "- Result: ${{ job.status }}"
+          } >> "$GITHUB_STEP_SUMMARY"
