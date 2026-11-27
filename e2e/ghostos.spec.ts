@@ -520,29 +520,30 @@ for (const vp of [
 test('R5: desktop does not paint until delayed IndexedDB hydration completes', async ({ page }) => {
   // Delay every indexedDB.open success by ~1.5s so hydration resolves late. The
   // boot sequence (reduced-motion → ~0.3s) finishes first, so if the gate were
-  // wrong the Desktop would paint before the stores hydrated. We intercept BOTH
-  // the `onsuccess` property setter (how the `idb` library attaches its handler)
-  // and addEventListener, so the delay applies regardless of attach style.
+  // wrong the Desktop would paint before the stores hydrated.
   await page.addInitScript(() => {
     const DELAY = 1500;
     const realOpen = indexedDB.open.bind(indexedDB);
     // @ts-expect-error - override for fault injection in the browser context
     indexedDB.open = (...args: Parameters<typeof realOpen>) => {
       const req = realOpen(...args);
-      // The `idb` library attaches its resolver via the `onsuccess` property.
-      // Intercept that assignment and defer the handler so the DB "opens" late,
-      // modelling slow storage. A real success listener keeps the deferral alive.
-      let stored: ((this: IDBRequest, ev: Event) => void) | null = null;
-      req.addEventListener('success', (ev) => {
-        if (stored) setTimeout(() => stored!.call(req, ev), DELAY);
-      });
-      Object.defineProperty(req, 'onsuccess', {
-        configurable: true,
-        get: () => stored,
-        set: (fn: ((this: IDBRequest, ev: Event) => void) | null) => {
-          stored = fn;
-        },
-      });
+      // idb@8 resolves openDB by listening via addEventListener('success', …).
+      // Defer that listener so the DB "opens" ~1.5s late, modelling slow storage.
+      // We only delay the open request's success — upgrade/error are untouched.
+      const origAdd = req.addEventListener.bind(req);
+      // @ts-expect-error - narrow override of addEventListener for fault injection
+      req.addEventListener = (
+        type: string,
+        listener: EventListenerOrEventListenerObject,
+        opts?: boolean | AddEventListenerOptions,
+      ) => {
+        if (type === 'success' && typeof listener === 'function') {
+          const fn = listener as EventListener;
+          origAdd('success', ((ev: Event) => setTimeout(() => fn(ev), DELAY)) as EventListener, opts);
+        } else {
+          origAdd(type as string, listener, opts);
+        }
+      };
       return req;
     };
   });
@@ -596,44 +597,15 @@ test('R9.7: blocked autoplay falls back to paused with a prompt (no false playin
 test('R6b: failed IndexedDB write shows Save failed, not a false Saved (no silent loss)', async ({
   page,
 }) => {
-  // Allow reads/hydration to succeed, then make writes to the `kv` and `content`
-  // object stores reject. This simulates storage becoming unwritable (quota,
-  // disk, private-mode eviction) while the app is running.
+  // Allow reads/hydration to succeed, then make every object-store write throw.
+  // Overriding IDBObjectStore.prototype.put to throw a DOMException uses real IDB
+  // semantics: idb@8 surfaces the throw as a rejected db.put() promise, which the
+  // persistence layer catches and reports as a non-durable (failed) write. Reads
+  // (get) are untouched, so hydration and file creation still work.
   await page.addInitScript(() => {
-    const realOpen = indexedDB.open.bind(indexedDB);
-    // @ts-expect-error - override for fault injection in the browser context
-    indexedDB.open = (...args) => {
-      const req = realOpen(...(args as Parameters<typeof realOpen>));
-      req.addEventListener('success', () => {
-        const db = req.result as IDBDatabase;
-        const realTx = db.transaction.bind(db);
-        // @ts-expect-error - narrow override for fault injection
-        db.transaction = (stores: string | string[], mode?: IDBTransactionMode) => {
-          const tx = realTx(stores as string[], mode);
-          if (mode === 'readwrite') {
-            const realObjectStore = tx.objectStore.bind(tx);
-            // @ts-expect-error - override put to fail
-            tx.objectStore = (name: string) => {
-              const os = realObjectStore(name);
-              os.put = () => {
-                const r = {} as IDBRequest;
-                setTimeout(() => {
-                  // @ts-expect-error - fabricate an error event
-                  r.error = new DOMException('write blocked', 'QuotaExceededError');
-                  if (typeof r.onerror === 'function') {
-                    // @ts-expect-error - minimal event
-                    r.onerror(new Event('error'));
-                  }
-                }, 0);
-                return r;
-              };
-              return os;
-            };
-          }
-          return tx;
-        };
-      });
-      return req;
+    const proto = IDBObjectStore.prototype;
+    proto.put = function blockedPut(): IDBRequest {
+      throw new DOMException('write blocked (fault injection)', 'QuotaExceededError');
     };
   });
 
@@ -651,11 +623,11 @@ test('R6b: failed IndexedDB write shows Save failed, not a false Saved (no silen
   await area.fill('this write should fail honestly');
   await editor.getByRole('button', { name: 'Save' }).click();
 
-  // The status must report failure — never a false "Saved".
+  // The status must report failure — never a false "Saved". The "Save failed"
+  // badge is persistent (unlike a toast), so it is the authoritative signal that
+  // the app did not silently drop the write or claim a false success.
   await expect(editor.getByText(/save failed/i)).toBeVisible({ timeout: 10_000 });
   await expect(editor.getByText('Saved', { exact: true })).toHaveCount(0);
-  // And the app surfaces an explicit notice (toast) about the non-durable save.
-  await expect(page.getByText(/storage is unavailable|memory only|save failed/i).first()).toBeVisible();
 });
 
 // --- R12: narrow-mobile layout and keyboard accessibility ---
