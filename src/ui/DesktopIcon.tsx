@@ -37,7 +37,7 @@ export function DesktopIcon({ app, selected, tabIndex, onSelect, onLaunch, onFoc
       <span className="transition-transform duration-150 group-hover:-translate-y-0.5">
         <AppIconTile app={app} size="desktop" />
       </span>
-      <span className="line-clamp-2 font-pixel text-[13px] leading-tight text-bone-100 [text-shadow:0_1px_3px_rgba(0,0,0,0.85)]">
+      <span className="w-full break-words font-pixel text-[13px] leading-tight text-bone-100 [text-shadow:0_1px_3px_rgba(0,0,0,0.85)]">
         {app.name}
       </span>
     </button>
