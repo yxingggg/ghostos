@@ -1,8 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AppComponentProps } from '../registry';
 import { useNotes } from '../../state/notesStore';
+import { VfsFileEditor } from './VfsFileEditor';
 
-export function NotesApp(_props: AppComponentProps) {
+export function NotesApp({ props }: AppComponentProps) {
+  // When launched with a VFS file id (e.g. from Tomb Explorer), GraveNotes acts
+  // as an editor bound to that file, reading and saving its content in place.
+  // Otherwise it behaves as the standalone notes app backed by notesStore.
+  const vfsFileId = typeof props?.vfsFileId === 'string' ? props.vfsFileId : null;
+  if (vfsFileId) {
+    return <VfsFileEditor fileId={vfsFileId} />;
+  }
+  return <StandaloneNotes />;
+}
+
+function StandaloneNotes() {
   const notes = useNotes((s) => s.notes);
   const ordered = useNotes((s) => s.ordered);
   const create = useNotes((s) => s.create);

@@ -119,6 +119,38 @@ organize files and folders.
 6. WHEN a user navigates into a folder THEN the explorer SHALL display that folder's children and a breadcrumb path to the root.
 7. The VFS SHALL maintain the invariant that every non-root node has exactly one parent and that the tree contains no cycles.
 
+### Requirement 7b: Opening files from the file explorer
+
+**User Story:** As a user, I want to open files from Tomb Explorer, so that I can view and
+edit their contents in the right application.
+
+#### Acceptance Criteria
+
+1. WHEN a user double-clicks a file (or selects it and presses Enter) THEN the explorer SHALL open it in the application associated with its type.
+2. WHEN a user double-clicks or activates a folder THEN the explorer SHALL navigate into that folder rather than launching an application.
+3. The explorer SHALL determine the handling application from a pure file-type association (by extension, then MIME) WITHOUT introducing application-specific branching into the window manager.
+4. WHEN a user opens a text or Markdown file THEN the system SHALL open it in GraveNotes, passing the file's VFS identifier so GraveNotes loads that file's content.
+5. WHEN a user edits and saves a file opened from the explorer THEN the system SHALL write the changes back to the SAME VFS file (by its identifier) and SHALL NOT create an unrelated note.
+6. WHEN a user opens a newly created empty text file THEN the system SHALL open it without error and allow editing and saving.
+7. WHEN a user opens a supported audio file THEN the system SHALL open it in DeadWave and begin playback where compatible.
+8. WHEN a user opens a supported image file THEN the system SHALL display a preview in an image viewer.
+9. IF a file's type is unsupported THEN the system SHALL display an informative message and SHALL NOT fail silently.
+
+### Requirement 7c: File management context menu
+
+**User Story:** As a user, I want a right-click context menu in Tomb Explorer, so that I can
+manage files efficiently.
+
+#### Acceptance Criteria
+
+1. WHEN a user right-clicks a file or folder THEN the explorer SHALL show a context menu positioned at the pointer and SHALL close it on outside click or Escape.
+2. The context menu SHALL offer Open, Open with, Rename, Delete, Duplicate, Download, and Properties, showing only actions applicable to the target (e.g. Open with/Download for files).
+3. Every visible context-menu action SHALL be functional; the explorer SHALL NOT present placeholder actions.
+4. WHEN a user chooses Duplicate THEN the explorer SHALL create a copy (including file content) under a non-colliding name within the same parent.
+5. WHEN a user chooses Download on a file THEN the browser SHALL download that file's content.
+6. WHEN a user chooses Properties THEN the explorer SHALL display the item's name, type, location, size (files) or item count (folders), and timestamps.
+7. WHEN a user chooses Open with THEN the explorer SHALL let the user pick a compatible application and open the file there.
+
 ### Requirement 8: Calculator
 
 **User Story:** As a user, I want a calculator, so that I can perform arithmetic.

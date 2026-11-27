@@ -58,6 +58,10 @@ interface VfsStore {
   rename: (id: NodeId, name: string) => boolean;
   remove: (id: NodeId) => Promise<void>;
   move: (id: NodeId, newParentId: NodeId) => boolean;
+  /** Duplicate a file (copies content) or an empty folder, within its parent. */
+  duplicate: (id: NodeId) => Promise<NodeId | null>;
+  /** Read a file's raw content bytes, or null if it has none. */
+  readBinary: (id: NodeId) => Promise<ArrayBuffer | null>;
   /** Apply a VFS state produced by the terminal interpreter. */
   applyVfs: (next: VfsState) => void;
   addBinary: (parentId: NodeId, name: string, blob: Blob) => Promise<NodeId | null>;
@@ -174,6 +178,55 @@ export const useVfs = create<VfsStore>((set, get) => ({
     persist(r.value);
     return true;
   },
+  duplicate: async (id) => {
+    const node = getNode(get().vfs, id);
+    if (!node || node.parentId === null) {
+      useToasts.getState().push('Cannot duplicate this item.', 'error');
+      return null;
+    }
+    const parentId = node.parentId;
+    const siblings = childrenOf(get().vfs, parentId).map((n) => n.name);
+    const copyName = duplicateName(siblings, node.name);
+    if (node.kind === 'folder') {
+      // Duplicate as an empty folder (deep copy of trees is out of scope here).
+      const newId = createId('dir');
+      const r = createNode(get().vfs, parentId, copyName, { id: newId, kind: 'folder' });
+      if (!r.ok) {
+        useToasts.getState().push(r.error, 'error');
+        return null;
+      }
+      set({ vfs: r.value });
+      persist(r.value);
+      return newId;
+    }
+    // File: copy content into a fresh content entry.
+    const newId = createId('file');
+    const newContentId = createId('content');
+    const raw = node.contentId ? await getContent(node.contentId) : undefined;
+    const r = createNode(get().vfs, parentId, copyName, {
+      id: newId,
+      kind: 'file',
+      ...(node.mime ? { mime: node.mime } : {}),
+      contentId: newContentId,
+      size: node.size,
+    });
+    if (!r.ok) {
+      useToasts.getState().push(r.error, 'error');
+      return null;
+    }
+    await putContent(newContentId, raw ?? '');
+    set({ vfs: r.value });
+    persist(r.value);
+    return newId;
+  },
+  readBinary: async (id) => {
+    const node = getNode(get().vfs, id);
+    if (!node || node.kind !== 'file' || !node.contentId) return null;
+    const raw = await getContent(node.contentId);
+    if (raw instanceof ArrayBuffer) return raw;
+    if (typeof raw === 'string') return new TextEncoder().encode(raw).buffer;
+    return null;
+  },
   applyVfs: (next) => {
     set({ vfs: next });
     persist(next);
@@ -198,6 +251,20 @@ export const useVfs = create<VfsStore>((set, get) => ({
     return id;
   },
 }));
+
+/** Produce a non-colliding "copy" name, preserving the file extension. */
+function duplicateName(siblings: string[], name: string): string {
+  const dot = name.lastIndexOf('.');
+  const stem = dot > 0 ? name.slice(0, dot) : name;
+  const ext = dot > 0 ? name.slice(dot) : '';
+  let candidate = `${stem} copy${ext}`;
+  let i = 2;
+  while (siblings.includes(candidate)) {
+    candidate = `${stem} copy ${i}${ext}`;
+    i += 1;
+  }
+  return candidate;
+}
 
 function isInSubtree(vfs: VfsState, nodeId: NodeId, ancestorId: NodeId): boolean {
   let cur: NodeId | null = nodeId;

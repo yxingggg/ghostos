@@ -119,3 +119,27 @@
     persistence/offline behavior were NOT tested by execution. They should be confirmed
     manually in a browser at https://yxingggg.github.io/ghostos/.
   - _Requirements: 14.1–14.3_
+
+- [ ] 19. Fix: open files from Tomb Explorer (post-submission bug report)
+  - Root cause: Explorer's double-click handler only navigated folders; files had no open
+    path, and GraveNotes only read its own notesStore, so a file (esp. a newly created one)
+    could not be opened.
+  - [ ] 19.1 Add a pure `core/vfs/fileType.ts` (classify by extension then MIME; associate
+    to a registered app) + unit tests. _Requirements: 7b.1, 7b.3, 7b.9_
+  - [ ] 19.2 Explorer: double-click and Enter open files; folders navigate; right-click
+    context menu (Open, Open with, Rename, Delete, Duplicate, Download, Properties), all
+    functional; no placeholder actions. _Requirements: 7b.1, 7b.2, 7c.1–7c.7_
+  - [ ] 19.3 GraveNotes: when opened with `props.vfsFileId`, edit that VFS file in place
+    (read on open, save back to the same id); empty files open and edit without error;
+    standalone notes unchanged. _Requirements: 7b.4, 7b.5, 7b.6_
+  - [ ] 19.4 DeadWave opens VFS audio (`addTrackFromVfs`, de-duped); new `imageviewer` app
+    previews images; unsupported types show a toast. _Requirements: 7b.7, 7b.8, 7b.9_
+  - [ ] 19.5 `vfsStore.duplicate`/`readBinary`; pure `nodeProperties` helper + tests.
+    _Requirements: 7c.4, 7c.5, 7c.6_
+  - [ ] 19.6 Regression/integration tests for the full workflow: create → open → edit →
+    save → close → reopen → verify content → restore persisted workspace.
+    _Requirements: 15.3_
+  - Registry-driven: no application-specific branching added to the window manager. No
+    IndexedDB reset or breaking persistence change. Existing files and standalone
+    GraveNotes behavior preserved.
+  - _Requirements: 7b, 7c_

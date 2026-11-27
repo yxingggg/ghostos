@@ -244,8 +244,50 @@ export function getApp(id: string): AppDefinition | undefined;
 ```
 
 The desktop/start-menu iterate `getApps()`. The window manager stores only `appId`; the
-`WindowFrame` looks up the component via the registry. Adding an app = register it; no WM
-changes.
+`WindowFrame` looks up the component via the registry and passes each window's optional
+`props` payload to the app component. Adding an app = register it; no WM changes.
+
+Apps that can be opened only by another app (not from the desktop) set `desktop: false`
+so they are omitted from the desktop grid but still launchable via the registry — e.g. the
+image viewer (`imageviewer`).
+
+## Opening files (file associations)
+
+Opening a file from Tomb Explorer is registry-driven so the window manager stays
+app-agnostic. The association logic is a **pure core module** `core/vfs/fileType.ts`:
+
+```ts
+type OpenKind = 'text' | 'markdown' | 'audio' | 'image' | 'unsupported';
+function classifyFile(name: string, mime?: string): OpenKind;        // extension, then MIME
+function associate(name: string, mime?: string): {                    // -> target app
+  kind: OpenKind; appId: string | null; label: string;
+};
+```
+
+Flow: the Explorer calls `associate(name, mime)` to pick a target `appId`, then
+`wmStore.open({ appId, title, props: { vfsFileId } })`. The target app reads
+`props.vfsFileId` and loads that VFS node:
+
+- **GraveNotes** (`notes`) — when given `vfsFileId`, renders a `VfsFileEditor` bound to that
+  file: it reads content via `vfsStore.readText` and saves edits back to the **same** file
+  via `vfsStore.writeText` (debounced + explicit Save + Ctrl/Cmd+S, with a flush on
+  unmount). Without `vfsFileId` it is the standalone notes app (unchanged).
+- **DeadWave** (`music`) — imports the VFS audio file via `musicStore.addTrackFromVfs`
+  (de-duping by `vfsFileId`) and plays it.
+- **Spectral Viewer** (`imageviewer`) — reads bytes via `vfsStore.readBinary` and renders
+  an object-URL preview.
+- Unsupported types raise a non-blocking toast; the WM contains no `switch (appId)` for
+  file handling — the mapping lives entirely in `fileType.ts`.
+
+Folders navigate in place (no window launched).
+
+### File management operations
+
+`vfsStore` gains `duplicate(id)` (copies a file's content under a non-colliding
+"… copy" name; folders duplicate as empty) and `readBinary(id)` (raw bytes for download
+and image preview). The Explorer's right-click `ContextMenu` offers Open, Open with,
+Rename, Delete, Duplicate, Download, and Properties — each wired to a real store action;
+`PropertiesDialog` derives its fields from a pure `nodeProperties(vfs, id)` helper.
 
 ## Persistence design
 

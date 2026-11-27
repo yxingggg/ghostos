@@ -6,6 +6,7 @@ import {
   AssistantIcon,
   CalculatorIcon,
   ExplorerIcon,
+  ImageIcon,
   MusicIcon,
   NotesIcon,
   SettingsIcon,
@@ -18,6 +19,7 @@ import { TerminalApp } from './terminal/TerminalApp';
 import { MusicApp } from './music/MusicApp';
 import { SettingsApp } from './settings/SettingsApp';
 import { AssistantApp } from './assistant/AssistantApp';
+import { ImageViewerApp } from './imageviewer/ImageViewerApp';
 
 let registered = false;
 
@@ -59,6 +61,15 @@ export function registerBuiltinApps(): void {
     Icon: MusicIcon,
     Component: MusicApp,
     defaultBounds: { width: 520, height: 500 },
+  });
+  registerApp({
+    id: 'imageviewer',
+    name: 'Spectral Viewer',
+    Icon: ImageIcon,
+    Component: ImageViewerApp,
+    defaultBounds: { width: 480, height: 420 },
+    // Launched only by opening an image file; not shown as a desktop icon.
+    desktop: false,
   });
   registerApp({
     id: 'settings',

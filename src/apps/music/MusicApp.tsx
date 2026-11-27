@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import type { AppComponentProps } from '../registry';
 import { useMusic } from '../../state/musicStore';
 import { useSettings } from '../../state/settingsStore';
+import { useVfs } from '../../state/vfsStore';
+import { useToasts } from '../../state/toastStore';
 import { Visualizer } from './Visualizer';
 
-export function MusicApp(_props: AppComponentProps) {
+export function MusicApp({ props }: AppComponentProps) {
   const tracks = useMusic((s) => s.tracks);
   const currentId = useMusic((s) => s.currentId);
   const playing = useMusic((s) => s.playing);
@@ -15,7 +17,35 @@ export function MusicApp(_props: AppComponentProps) {
   const setPlaying = useMusic((s) => s.setPlaying);
   const next = useMusic((s) => s.next);
   const prev = useMusic((s) => s.prev);
+  const addTrackFromVfs = useMusic((s) => s.addTrackFromVfs);
   const muted = !useSettings((s) => s.sound);
+  const vfsNode = useVfs((s) => s.node);
+  const readBinary = useVfs((s) => s.readBinary);
+  const pushToast = useToasts((s) => s.push);
+
+  // When opened from Tomb Explorer with a VFS audio file, import and play it.
+  const vfsFileId = typeof props?.vfsFileId === 'string' ? props.vfsFileId : null;
+  useEffect(() => {
+    if (!vfsFileId) return;
+    let cancelled = false;
+    const node = vfsNode(vfsFileId);
+    if (!node || node.kind !== 'file') return;
+    void readBinary(vfsFileId).then((buf) => {
+      if (cancelled || !buf) {
+        if (!buf) pushToast('That audio file is empty.', 'error');
+        return;
+      }
+      void addTrackFromVfs(vfsFileId, node.name, buf, node.mime ?? 'audio/mpeg').then((id) => {
+        if (cancelled) return;
+        select(id);
+        setPlaying(true);
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vfsFileId]);
 
   // Mutable ref (initialized null) so the callback ref can assign to it.
   const audioRef = useRef<HTMLAudioElement | null>(null);

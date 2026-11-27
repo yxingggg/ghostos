@@ -16,6 +16,8 @@ export interface Track {
   mime: string;
   duration?: number;
   addedAt: number;
+  /** VFS file id this track was imported from, if any (used for de-duping). */
+  vfsFileId?: string;
 }
 
 interface MusicStore {
@@ -25,6 +27,13 @@ interface MusicStore {
   hydrated: boolean;
   hydrate: () => Promise<void>;
   addTrack: (name: string, blob: Blob) => Promise<string>;
+  /** Import a VFS audio file as a track (reusing an existing one for that file). */
+  addTrackFromVfs: (
+    vfsFileId: string,
+    name: string,
+    content: ArrayBuffer,
+    mime: string,
+  ) => Promise<string>;
   removeTrack: (id: string) => Promise<void>;
   getTrackUrl: (id: string) => Promise<string | null>;
   select: (id: string | null) => void;
@@ -58,6 +67,28 @@ export const useMusic = create<MusicStore>((set, get) => ({
     };
     const tracks = [...get().tracks, track];
     set({ tracks });
+    persist(tracks);
+    return track.id;
+  },
+  addTrackFromVfs: async (vfsFileId, name, content, mime) => {
+    // Reuse an existing track for this VFS file so re-opening doesn't duplicate.
+    const existing = get().tracks.find((t) => t.vfsFileId === vfsFileId);
+    if (existing) {
+      set({ currentId: existing.id });
+      return existing.id;
+    }
+    const contentId = createId('audio');
+    await putContent(contentId, content);
+    const track: Track = {
+      id: createId('track'),
+      name,
+      contentId,
+      mime: mime || 'audio/mpeg',
+      addedAt: Date.now(),
+      vfsFileId,
+    };
+    const tracks = [...get().tracks, track];
+    set({ tracks, currentId: track.id });
     persist(tracks);
     return track.id;
   },

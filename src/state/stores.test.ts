@@ -117,4 +117,61 @@ describe('vfsStore persistence (integration)', () => {
     const second = useVfs.getState().createFolder(root, 'dup');
     expect(second).toBeNull();
   });
+
+  it('full workflow: create → open → edit → save → reopen → verify → restore', async () => {
+    await useVfs.getState().hydrate();
+    const root = useVfs.getState().rootId;
+
+    // Create an EMPTY text file (the exact case from the bug report).
+    const fileId = await useVfs.getState().createTextFile(root, 'spell.txt', '');
+    expect(fileId).not.toBeNull();
+    if (!fileId) return;
+
+    // Open it — empty files must be readable (not error).
+    expect(await useVfs.getState().readText(fileId)).toBe('');
+
+    // Edit and save back to the SAME file id (as the VFS editor does).
+    await useVfs.getState().writeText(fileId, 'by the moonlight');
+    expect(await useVfs.getState().readText(fileId)).toBe('by the moonlight');
+
+    // The node keeps its identity; no unrelated note/file was created.
+    const filesNamedSpell = Object.values(useVfs.getState().vfs.nodes).filter(
+      (n) => n.name === 'spell.txt',
+    );
+    expect(filesNamedSpell).toHaveLength(1);
+    expect(filesNamedSpell[0]?.id).toBe(fileId);
+
+    // Persist round-trip: a fresh store hydrates the saved content.
+    await useVfs.getState().hydrate();
+    expect(await useVfs.getState().readText(fileId)).toBe('by the moonlight');
+  });
+
+  it('duplicate copies a file with its content under a non-colliding name', async () => {
+    await useVfs.getState().hydrate();
+    const root = useVfs.getState().rootId;
+    const fileId = await useVfs.getState().createTextFile(root, 'note.txt', 'original');
+    expect(fileId).not.toBeNull();
+    if (!fileId) return;
+    const copyId = await useVfs.getState().duplicate(fileId);
+    expect(copyId).not.toBeNull();
+    if (!copyId) return;
+    expect(copyId).not.toBe(fileId);
+    expect(await useVfs.getState().readText(copyId)).toBe('original');
+    const node = useVfs.getState().node(copyId);
+    expect(node?.name).toBe('note copy.txt');
+    // Editing the copy must not change the original.
+    await useVfs.getState().writeText(copyId, 'changed');
+    expect(await useVfs.getState().readText(fileId)).toBe('original');
+  });
+
+  it('readBinary returns bytes for file content', async () => {
+    await useVfs.getState().hydrate();
+    const root = useVfs.getState().rootId;
+    const fileId = await useVfs.getState().createTextFile(root, 'bin.txt', 'hi');
+    expect(fileId).not.toBeNull();
+    if (!fileId) return;
+    const buf = await useVfs.getState().readBinary(fileId);
+    expect(buf).toBeInstanceOf(ArrayBuffer);
+    expect(new TextDecoder().decode(buf as ArrayBuffer)).toBe('hi');
+  });
 });

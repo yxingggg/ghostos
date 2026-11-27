@@ -142,6 +142,16 @@ export const FileIcon: FC<IconProps> = ({ className }) => (
   </Svg>
 );
 
+/** Image / picture icon for the Spectral Viewer. */
+export const ImageIcon: FC<IconProps> = ({ className }) => (
+  <Svg className={className}>
+    <rect x="3" y="5" width="18" height="14" rx="1.5" fill="currentColor" opacity="0.14" />
+    <rect x="3" y="5" width="18" height="14" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+    <circle cx="8" cy="10" r="1.6" fill="currentColor" />
+    <path d="M5 18l4.5-5 3 3L16 12l3 4" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" strokeLinecap="round" fill="none" />
+  </Svg>
+);
+
 /** Generic folder icon. */
 export const FolderIcon: FC<IconProps> = ({ className }) => (
   <Svg className={className}>
