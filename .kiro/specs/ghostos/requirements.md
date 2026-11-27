@@ -289,3 +289,46 @@ GhostOS is reliable and extensible.
 3. The project SHALL include unit tests for pure logic (calculator, VFS operations, WM reducers) and integration tests for store/app behavior.
 4. The project SHALL include property-based tests asserting invariants of window state (e.g., focus uniqueness, bounds clamping) and of the VFS (e.g., single-parent, acyclic, delete-subtree).
 5. CI-equivalent checks (type-check, lint, test) SHALL be runnable via documented npm scripts.
+
+### Requirement 16: Ghost Memory resurrection, connectivity awareness, and About
+
+**User Story:** As a user who values digital independence and workspace portability, I want
+a safe, legible backup/restore experience, honest connectivity status, and an About screen,
+so that I can move and resurrect my entire workspace with confidence and no surprises.
+
+#### Acceptance Criteria
+
+1. WHEN a user exports Ghost Memory THEN the system SHALL download a JSON backup that
+   includes provenance metadata (app name, app version, and an ISO creation timestamp) and
+   SHALL show a summary of what was exported (counts of files, folders, notes, tracks, and
+   the selected wallpaper).
+2. The exported metadata SHALL NOT include the AI assistant API key (the key remains
+   session-only), and older backups WITHOUT metadata SHALL still import successfully
+   (backward compatible).
+3. WHEN a user selects a file to restore THEN the system SHALL parse and VALIDATE it and,
+   IF it is malformed (not JSON, wrong shape, corrupt `vfs`/`settings`/content), SHALL
+   reject it with a specific message and SHALL perform NO storage mutation.
+4. WHEN a valid backup is selected THEN the system SHALL show a preview summarizing its
+   contents (same counts as the export summary) and the backup's creation time/version
+   BEFORE any data is written.
+5. The system SHALL require an explicit replacement confirmation that clearly states the
+   restore REPLACES the current workspace; cancelling SHALL leave all current data
+   unchanged and write nothing.
+6. WHILE a restore is writing THE system SHALL show a busy state; on success it SHALL show
+   explicit success feedback and an explicit "Enter restored workspace" control (a clean
+   reload) rather than reloading automatically.
+7. Restore SHALL write content blobs before the node index so the filesystem never
+   references missing content; IF a storage write fails THEN the system SHALL report the
+   failure explicitly (restore is best-effort replace-then-reload, not a single atomic
+   transaction across stores).
+8. The taskbar SHALL display a connectivity indicator that is responsive and honest: it
+   SHALL distinguish network-offline (reassuring, since local features keep working) from
+   degraded storage (a genuine "changes will not be saved" warning), SHALL NOT imply the
+   optional online AI works offline, and SHALL NOT imply that `navigator.onLine` guarantees
+   the page is cached/available offline.
+9. WHEN the browser emits `online`/`offline` events THEN the indicator SHALL update
+   accordingly.
+10. The first-launch welcome SHALL offer a "Restore a backup" shortcut that opens Settings
+    directly to the Ghost Memory restore picker.
+11. Settings SHALL include an About section showing the GhostOS brand, version, offline-first
+    summary, and license/credits, WITHOUT adding a new app.

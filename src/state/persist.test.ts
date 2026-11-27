@@ -103,4 +103,21 @@ describe('persistence (fake-indexeddb)', () => {
     expect(await loadSlice('settings')).toEqual({ crt: true });
     expect(await getContent('blob1')).toBe('payload');
   });
+
+  it('exportAll includes provenance meta (app, version, timestamp)', async () => {
+    await saveSlice('settings', { crt: true });
+    const dump = await exportAll();
+    expect(dump.meta).toBeDefined();
+    expect(typeof dump.meta.app).toBe('string');
+    expect(typeof dump.meta.appVersion).toBe('string');
+    expect(() => new Date(dump.meta.createdAt).toISOString()).not.toThrow();
+  });
+
+  it('imports a legacy backup that has no meta field (backward compatible)', async () => {
+    // A pre-meta export shape: only version/kv/content.
+    const legacy = { version: 1, kv: { settings: { crt: false } }, content: { c: 'str:hi' } };
+    await importAll(legacy);
+    expect(await loadSlice('settings')).toEqual({ crt: false });
+    expect(await getContent('c')).toBe('hi');
+  });
 });

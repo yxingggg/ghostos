@@ -51,7 +51,7 @@ export function Desktop() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function launch(appId: string) {
+  function launch(appId: string, props?: Record<string, unknown>) {
     const app = getApp(appId);
     if (!app) return;
     playSfx('open', sound);
@@ -60,6 +60,7 @@ export function Desktop() {
       title: app.name,
       ...(app.defaultBounds ? { bounds: app.defaultBounds } : {}),
       ...(app.singleton ? { singleton: true } : {}),
+      ...(props ? { props } : {}),
     });
     setStartOpen(false);
   }
@@ -142,7 +143,7 @@ export function Desktop() {
       <StartMenu open={startOpen} onClose={() => setStartOpen(false)} onLaunch={launch} />
       <Taskbar onToggleStart={() => setStartOpen((o) => !o)} startOpen={startOpen} />
 
-      <WelcomeDialog onOpenApp={(id) => launch(id)} />
+      <WelcomeDialog onOpenApp={(id, props) => launch(id, props)} />
 
       <CrtOverlay />
     </div>

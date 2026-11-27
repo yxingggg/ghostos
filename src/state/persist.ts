@@ -4,6 +4,7 @@
 //   content — large/binary blobs (file bodies, audio) keyed by contentId
 
 import { openDB, type IDBPDatabase } from 'idb';
+import { APP_NAME, APP_VERSION } from '../version';
 
 const DB_NAME = 'ghostos';
 const DB_VERSION = 1;
@@ -167,12 +168,20 @@ export async function deleteContent(id: string): Promise<void> {
   }
 }
 
-/** Export the full KV + content database as a plain JSON-serializable object. */
-export async function exportAll(): Promise<{
+export interface ExportedBackup {
   version: number;
+  /** Provenance metadata for backup summaries/previews (added for Ghost Memory). */
+  meta: { app: string; appVersion: string; createdAt: string };
   kv: Record<string, unknown>;
   content: Record<string, string>;
-}> {
+}
+
+/**
+ * Export the full KV + content database as a plain JSON-serializable object.
+ * Includes `meta` provenance (app, version, timestamp); older backups without
+ * `meta` still import fine, and importAll ignores unknown top-level fields.
+ */
+export async function exportAll(): Promise<ExportedBackup> {
   const kv: Record<string, unknown> = {};
   const content: Record<string, string> = {};
   const db = await getDB();
@@ -188,23 +197,37 @@ export async function exportAll(): Promise<{
     for (const [k, v] of memory.kv) kv[k] = v;
     for (const [k, v] of memory.content) content[k] = serializeContent(v);
   }
-  return { version: DB_VERSION, kv, content };
+  return {
+    version: DB_VERSION,
+    meta: { app: APP_NAME, appVersion: APP_VERSION, createdAt: new Date().toISOString() },
+    kv,
+    content,
+  };
 }
 
-/** Import a previously exported database, replacing current slices/content. */
+/**
+ * Import a previously exported database, replacing current slices/content.
+ *
+ * Content blobs are written BEFORE the kv slices so the `vfs` node index is
+ * only replaced once the file bodies it references already exist — this avoids
+ * a window where the tree points at missing content if a write fails partway.
+ * (This is not a single atomic transaction across both object stores; callers
+ * should treat restore as "best-effort replace then reload", which is why the
+ * UI reloads from the resulting store rather than hot-swapping live state.)
+ */
 export async function importAll(data: {
   kv: Record<string, unknown>;
   content: Record<string, string>;
 }): Promise<void> {
+  for (const [k, v] of Object.entries(data.content)) {
+    if (typeof v === 'string') await putContent(k, deserializeContent(v));
+  }
   const known: readonly SliceName[] = ['settings', 'notes', 'vfs', 'music', 'wm-layout'];
   for (const [k, v] of Object.entries(data.kv)) {
     // Only import recognized slice names; ignore unknown keys from a tampered file.
     if ((known as readonly string[]).includes(k)) {
       await saveSlice(k as SliceName, v);
     }
-  }
-  for (const [k, v] of Object.entries(data.content)) {
-    if (typeof v === 'string') await putContent(k, deserializeContent(v));
   }
 }
 

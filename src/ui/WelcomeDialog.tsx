@@ -7,7 +7,7 @@ import { GhostMascot, GhostLogo } from '../assets/brand';
 import { prefersReducedMotion, useSettings } from '../state/settingsStore';
 
 interface Props {
-  onOpenApp: (appId: string) => void;
+  onOpenApp: (appId: string, props?: Record<string, unknown>) => void;
 }
 
 const README_BODY = `Welcome to GhostOS — a haunted retro-futuristic desktop in your browser.
@@ -124,6 +124,18 @@ export function WelcomeDialog({ onOpenApp }: Props) {
               className="rounded-sm border border-crypt-500 bg-crypt-700 px-3 py-1.5 font-pixel text-base text-bone-200 hover:bg-crypt-600 bevel-out"
             >
               Hear a demo track
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                // Resurrect a workspace from a prior export: open Settings and
+                // jump straight to the Ghost Memory restore picker.
+                onOpenApp('settings', { focus: 'restore' });
+                dismiss();
+              }}
+              className="rounded-sm border border-crypt-500 bg-crypt-700 px-3 py-1.5 font-pixel text-base text-bone-200 hover:bg-crypt-600 bevel-out"
+            >
+              Restore a backup
             </button>
             <button
               type="button"
