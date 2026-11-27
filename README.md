@@ -139,6 +139,8 @@ confirm it in a browser. See [Limitations](#limitations-and-remaining-verificati
 
   ![A taskbar connectivity indicator reading "Offline · all features work" next to the clock.](docs/screenshots/offline.png)
 
+  <sub>Every core feature keeps working offline. The one exception is the <b>optional online AI</b> mode of Spirit Assistant, which needs a network connection; its default offline help mode does not.</sub>
+
 - **Accessible & responsive** — keyboard-operable controls, ARIA roles/labels, visible
   focus, `prefers-reduced-motion` support, and a stacked layout on small screens.
 
