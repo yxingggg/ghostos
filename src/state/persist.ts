@@ -168,10 +168,30 @@ export async function importAll(data: {
   }
 }
 
+// Detect binary shapes by structural tag rather than `instanceof`, because a
+// storage engine can return values from a different realm (e.g. Node/jsdom +
+// fake-indexeddb) where `instanceof ArrayBuffer`/`Blob` is false even though
+// the value is one.
+function tagOf(value: unknown): string {
+  return Object.prototype.toString.call(value);
+}
+function isBlobLike(value: unknown): value is Blob {
+  return (
+    tagOf(value) === '[object Blob]' ||
+    (typeof value === 'object' &&
+      value !== null &&
+      typeof (value as { arrayBuffer?: unknown }).arrayBuffer === 'function' &&
+      typeof (value as { type?: unknown }).type === 'string')
+  );
+}
+function isArrayBufferLike(value: unknown): value is ArrayBuffer {
+  return tagOf(value) === '[object ArrayBuffer]';
+}
+
 async function serializeContent(value: unknown): Promise<string> {
   // Encode blobs/buffers as base64 data so export is pure JSON.
   if (typeof value === 'string') return `str:${value}`;
-  if (value instanceof ArrayBuffer) return `b64:${bufferToBase64(value)}`;
+  if (isArrayBufferLike(value)) return `b64:${bufferToBase64(value as ArrayBuffer)}`;
   // Some storage engines (and Node/fake-indexeddb) may return a typed-array
   // view or Node Buffer rather than a raw ArrayBuffer.
   if (ArrayBuffer.isView(value)) {
@@ -182,7 +202,7 @@ async function serializeContent(value: unknown): Promise<string> {
     );
     return `b64:${bufferToBase64(slice)}`;
   }
-  if (typeof Blob !== 'undefined' && value instanceof Blob) {
+  if (isBlobLike(value)) {
     const buf = await value.arrayBuffer();
     return `blob:${value.type}:${bufferToBase64(buf)}`;
   }

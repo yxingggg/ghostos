@@ -9,17 +9,22 @@ import {
   saveSlice,
 } from './persist';
 
-/** Normalize any binary representation the storage engine may return to bytes. */
-async function toBytes(
-  value: Blob | ArrayBuffer | string | undefined,
-): Promise<Uint8Array> {
-  if (value instanceof Blob) return new Uint8Array(await value.arrayBuffer());
-  if (value instanceof ArrayBuffer) return new Uint8Array(value);
-  if (ArrayBuffer.isView(value as unknown as ArrayBufferView)) {
-    const v = value as unknown as ArrayBufferView;
+/**
+ * Normalize any binary representation the storage engine may return to bytes.
+ * Uses structural tags, not `instanceof`, because fake-indexeddb can return
+ * values from a different realm where `instanceof` is unreliable.
+ */
+async function toBytes(value: unknown): Promise<Uint8Array> {
+  const tag = Object.prototype.toString.call(value);
+  if (tag === '[object Blob]' || (value && typeof (value as Blob).arrayBuffer === 'function' && 'type' in (value as object))) {
+    return new Uint8Array(await (value as Blob).arrayBuffer());
+  }
+  if (tag === '[object ArrayBuffer]') return new Uint8Array(value as ArrayBuffer);
+  if (ArrayBuffer.isView(value as ArrayBufferView)) {
+    const v = value as ArrayBufferView;
     return new Uint8Array(v.buffer, v.byteOffset, v.byteLength);
   }
-  throw new Error(`Expected binary content, got: ${typeof value} (${String(value)})`);
+  throw new Error(`Expected binary content, got: ${tag} (${String(value)})`);
 }
 
 describe('persistence (fake-indexeddb)', () => {
@@ -66,7 +71,9 @@ describe('persistence (fake-indexeddb)', () => {
     expect(await toBytes(a)).toEqual(bytes);
     expect(await toBytes(b)).toEqual(bytes);
     // When the engine preserves Blobs, the typed MIME must be retained.
-    if (b instanceof Blob) expect(b.type).toBe('audio/mpeg');
+    if (Object.prototype.toString.call(b) === '[object Blob]') {
+      expect((b as Blob).type).toBe('audio/mpeg');
+    }
   });
 
   it('ignores unknown kv keys on import', async () => {
