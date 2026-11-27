@@ -6,6 +6,8 @@ productivity**: a window manager, desktop, start menu, taskbar, and a suite of b
 apps that run **fully offline** in your browser, with no backend, no accounts, and no
 external APIs for core features. Everything you create lives in your own browser storage.
 
+![GhostOS desktop: a retro-gothic pixel-art scene of a moonlit haunted castle on a cliff, with desktop app icons (GraveNotes, Settings, Tomb Explorer, Spirit Assistant, Phantom Terminal, Calculator, DeadWave, Spectral Viewer) down the left, a Start button and an "Online" connectivity indicator and clock in the taskbar.](docs/screenshots/desktop.png)
+
 ### 🪦 Ghost Memory — the signature feature
 
 GhostOS treats your entire workspace as something you **own and can resurrect anywhere**.
@@ -16,6 +18,8 @@ machine — with a backup summary, a pre-restore preview, an explicit replacemen
 confirmation, and safeguards that prevent a half-written restore from being reported as a
 success. It is digital independence made concrete: your workspace is portable, inspectable,
 and never locked to a server.
+
+![Ghost Memory restore dialog titled "Resurrect this workspace?", showing the backup's creation date and GhostOS version, a summary of its contents (5 files, 3 folders, 2 notes, 2 tracks, wallpaper graveyard, 6 stored items), a warning that restoring replaces the current workspace and advice to export first and close other tabs, with "Replace & restore" and "Cancel" buttons.](docs/screenshots/resurrection.png)
 
 > **Kiroween 2026 — Resurrection category.** Built spec-first with Kiro (specs, steering,
 > hooks, and property-based testing). See [`docs/KIRO.md`](docs/KIRO.md) for the full
@@ -61,17 +65,26 @@ confirm it in a browser. See [Limitations](#limitations-and-remaining-verificati
   honestly (never a false success), and freezes further writes in the tab after a
   successful restore so a pending autosave cannot clobber the restored data before you
   reload. All offline, no server.
+
+  ![The Ghost Memory section in Settings, headed "Ghost Memory (workspace resurrection)", with "Export Ghost Memory" and "Restore from backup…" buttons and a summary line reading "Last export: 4 files, 3 folders, 0 notes, 0 tracks · wallpaper default."](docs/screenshots/ghost-memory.png)
+
 - **Premium haunted look** — an original GhostOS logo and ghost mascot ("Wisp"), distinctive
   illustrated app icons, and four detailed wallpapers (Haunted Castle, Blood Moon
   Graveyard, Misty Haunted Forest, Supernatural Void). Each ships as a ChatGPT-generated
   WebP that renders by default, backed by an **original hand-authored SVG scene fallback**
   (moon, stars, lit windows, cliffs, layered pines, atmospheric fog). All wallpapers are
   bundled locally, so the app stays offline. (See [Assets & provenance](#assets--provenance).)
+
+  ![The wallpaper picker in Settings showing four pixel-art thumbnails — Haunted Castle, Blood Moon Graveyard (selected, highlighted green), Misty Haunted Forest, and Supernatural Void.](docs/screenshots/wallpapers.png)
+
 - **First-launch welcome** — a branded intro that seeds sample files into your filesystem
   and offers quick actions (including "Restore a backup"); shown once.
 - **Atmospheric boot sequence** — a retro BIOS-style summoning on load.
 - **Window manager** — draggable, resizable windows with minimize, maximize/restore,
   close, focus/z-order management, and cascade placement.
+
+  ![GhostOS running three overlapping app windows at once — GraveNotes (an untitled text document), DeadWave (the audio player with its spectrum visualizer and demo tracks like "Midnight Transmission"), and Tomb Explorer (the file manager showing the "home" folder) — with matching buttons for all three in the taskbar.](docs/screenshots/multitasking.png)
+
 - **Desktop shell** — original pixel-gothic icons, a start menu, and a taskbar with a
   live clock and per-window buttons.
 - **Persistent virtual file system** — a single-rooted tree stored in IndexedDB.
@@ -105,7 +118,12 @@ confirm it in a browser. See [Limitations](#limitations-and-remaining-verificati
   exported), is never sent over non-HTTPS, and only your messages are sent — never your
   files or notes.
 - **Offline-first** — a service worker precaches the app shell so it runs without a
-  network. All assets are bundled or generated locally.
+  network. All assets are bundled or generated locally. A taskbar indicator tells you your
+  connectivity honestly — and reassures you that losing the network changes nothing for
+  core features:
+
+  ![A taskbar connectivity indicator reading "Offline · all features work" next to the clock.](docs/screenshots/offline.png)
+
 - **Accessible & responsive** — keyboard-operable controls, ARIA roles/labels, visible
   focus, `prefers-reduced-motion` support, and a stacked layout on small screens.
 
