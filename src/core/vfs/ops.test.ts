@@ -9,9 +9,9 @@ import {
   pathOf,
   remove,
   rename,
+  type Clock,
 } from './ops';
-import { Clock, VfsState } from './types';
-import { NodeId } from './types';
+import { NodeId, VfsNode, VfsState } from './types';
 
 const clock: Clock = { now: () => 1000 };
 
@@ -171,7 +171,7 @@ function assertTreeInvariants(s: VfsState): void {
     while (cur !== null) {
       if (seen.has(cur)) break;
       seen.add(cur);
-      const n = s.nodes[cur];
+      const n: VfsNode | undefined = s.nodes[cur];
       if (!n) break;
       if (n.parentId === null) {
         reachedRoot = n.id === s.rootId;

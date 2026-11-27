@@ -17,7 +17,8 @@ export function MusicApp(_props: AppComponentProps) {
   const prev = useMusic((s) => s.prev);
   const muted = !useSettings((s) => s.sound);
 
-  const audioRef = useRef<HTMLAudioElement>(null);
+  // Mutable ref (initialized null) so the callback ref can assign to it.
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   // Tracked in state (not just a ref) so the Visualizer re-renders and binds
   // its analyser once the <audio> element actually mounts.
   const [audioEl, setAudioEl] = useState<HTMLAudioElement | null>(null);

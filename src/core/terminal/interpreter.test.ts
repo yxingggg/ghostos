@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { isKnownCommand, runCommand, ShellContext } from './interpreter';
-import { createNode, createVfs } from '../vfs/ops';
-import { Clock, VfsState } from '../vfs/types';
+import { createNode, createVfs, type Clock } from '../vfs/ops';
+import { VfsState } from '../vfs/types';
 
 const clock: Clock = { now: () => 1 };
 
