@@ -166,8 +166,9 @@ Honest status of what has and hasn't been confirmed:
   deployment is not yet verified** — it is blocked on the owner enabling GitHub Pages
   (Settings → Pages → Source: "GitHub Actions"), after which the deploy workflow publishes
   to https://yxingggg.github.io/ghostos/.
-- **No `package-lock.json` committed.** Generated on first `npm install`; commit it to pin
-  versions and enable CI caching. CI currently uses `npm install` (no lockfile present).
+- **`package-lock.json` is committed** (generated in CI via the
+  [generate-lockfile workflow](.github/workflows/generate-lockfile.yml)), so installs are
+  reproducible and CI uses `npm ci`.
 - **Web fonts are not bundled.** To stay fully offline, GhostOS uses system-font fallbacks
   for the pixel/gothic look rather than loading fonts from a CDN. For the authentic bitmap
   typeface, drop self-hosted `.woff2` files into `src/assets/fonts/` and uncomment the
