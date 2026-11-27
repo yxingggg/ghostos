@@ -106,11 +106,16 @@ export async function putContent(
   id: string,
   value: Blob | ArrayBuffer | string,
 ): Promise<void> {
-  memory.content.set(id, value);
+  // Normalize Blobs to ArrayBuffer before storing. Blobs do not round-trip
+  // reliably through every IndexedDB implementation (notably fake-indexeddb
+  // under jsdom), and callers that need a Blob (the music player) reconstruct
+  // one from their own retained MIME type. Strings and buffers are stored as-is.
+  const toStore = isBlobLike(value) ? await value.arrayBuffer() : value;
+  memory.content.set(id, toStore);
   try {
     const db = await getDB();
     if (!db) return;
-    await db.put(CONTENT_STORE, value, id);
+    await db.put(CONTENT_STORE, toStore, id);
   } catch (e) {
     markDegraded(e instanceof Error ? e.message : 'write failed');
   }

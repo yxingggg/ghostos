@@ -56,7 +56,11 @@ describe('persistence (fake-indexeddb)', () => {
     expect(await toBytes(out)).toEqual(new Uint8Array([1, 2, 3, 250]));
   });
 
-  it('round-trips a Blob through export/import, including empty MIME type', async () => {
+  it('round-trips Blob bytes through export/import (stored as ArrayBuffer)', async () => {
+    // Blobs are normalized to ArrayBuffer at the storage layer; callers that
+    // need a MIME type retain it separately (e.g. the music store's Track).
+    // This test asserts the raw bytes survive a full export/import cycle for
+    // both empty and non-empty source MIME types.
     const bytes = new Uint8Array([9, 8, 7, 255, 0]);
     await putContent('blobEmptyMime', new Blob([bytes], { type: '' }));
     await putContent('blobTyped', new Blob([bytes], { type: 'audio/mpeg' }));
@@ -65,15 +69,8 @@ describe('persistence (fake-indexeddb)', () => {
     await __resetPersistenceForTests();
     await importAll(dump);
 
-    const a = await getContent('blobEmptyMime');
-    const b = await getContent('blobTyped');
-    // Bytes must survive the export/import round-trip for both MIME cases.
-    expect(await toBytes(a)).toEqual(bytes);
-    expect(await toBytes(b)).toEqual(bytes);
-    // When the engine preserves Blobs, the typed MIME must be retained.
-    if (Object.prototype.toString.call(b) === '[object Blob]') {
-      expect((b as Blob).type).toBe('audio/mpeg');
-    }
+    expect(await toBytes(await getContent('blobEmptyMime'))).toEqual(bytes);
+    expect(await toBytes(await getContent('blobTyped'))).toEqual(bytes);
   });
 
   it('ignores unknown kv keys on import', async () => {
