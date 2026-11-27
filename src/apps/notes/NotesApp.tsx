@@ -14,7 +14,8 @@ export function NotesApp(_props: AppComponentProps) {
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (!activeId && list[0]) setActiveId(list[0].id);
+    const first = list[0];
+    if (!activeId && first) setActiveId(first.id);
   }, [activeId, list]);
 
   return (

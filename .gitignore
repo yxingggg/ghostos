@@ -24,10 +24,6 @@ Thumbs.db
 .env.*
 !.env.example
 
-# NOTE: The .kiro directory (specs, steering, hooks) is intentionally committed.
-# Do not add .kiro or any of its meaningful subdirectories (specs, steering,
-# hooks) to this ignore file.
-#
-# The single exception is .kiro/settings/, which holds empty, machine-local
-# session artifacts (permissions scratch files) that are not part of the project.
-.kiro/settings/
+# NOTE: The .kiro directory (specs, steering, hooks, settings) is intentionally
+# committed in full. Kiroween prohibits ignoring .kiro or any of its
+# subdirectories — do not add .kiro or anything under it to this ignore file.

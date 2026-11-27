@@ -18,6 +18,9 @@ export function MusicApp(_props: AppComponentProps) {
   const muted = !useSettings((s) => s.sound);
 
   const audioRef = useRef<HTMLAudioElement>(null);
+  // Tracked in state (not just a ref) so the Visualizer re-renders and binds
+  // its analyser once the <audio> element actually mounts.
+  const [audioEl, setAudioEl] = useState<HTMLAudioElement | null>(null);
   const [url, setUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -69,7 +72,7 @@ export function MusicApp(_props: AppComponentProps) {
 
   return (
     <div className="flex h-full flex-col bg-crypt-800">
-      <Visualizer audioEl={audioRef.current} playing={playing} />
+      <Visualizer audioEl={audioEl} playing={playing} />
 
       <div className="flex items-center justify-between border-y border-crypt-500 px-3 py-1">
         <div className="min-w-0 font-pixel text-lg text-spectral-500">
@@ -156,7 +159,10 @@ export function MusicApp(_props: AppComponentProps) {
 
       {url && (
         <audio
-          ref={audioRef}
+          ref={(el) => {
+            audioRef.current = el;
+            setAudioEl(el);
+          }}
           src={url}
           muted={muted}
           onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}

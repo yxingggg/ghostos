@@ -156,11 +156,15 @@ export async function importAll(data: {
   kv: Record<string, unknown>;
   content: Record<string, string>;
 }): Promise<void> {
+  const known: readonly SliceName[] = ['settings', 'notes', 'vfs', 'music', 'wm-layout'];
   for (const [k, v] of Object.entries(data.kv)) {
-    await saveSlice(k as SliceName, v);
+    // Only import recognized slice names; ignore unknown keys from a tampered file.
+    if ((known as readonly string[]).includes(k)) {
+      await saveSlice(k as SliceName, v);
+    }
   }
   for (const [k, v] of Object.entries(data.content)) {
-    await putContent(k, deserializeContent(v));
+    if (typeof v === 'string') await putContent(k, deserializeContent(v));
   }
 }
 
@@ -180,7 +184,11 @@ function deserializeContent(value: string): Blob | ArrayBuffer | string {
   if (value.startsWith('b64:')) return base64ToBuffer(value.slice(4));
   if (value.startsWith('blob:')) {
     const rest = value.slice(5);
+    // Format is `blob:<mime>:<base64>`. MIME never contains ':' and base64 never
+    // contains ':', so the first colon unambiguously ends the (possibly empty)
+    // MIME type. Guard a malformed string with no colon.
     const sep = rest.indexOf(':');
+    if (sep === -1) return new Blob([base64ToBuffer(rest)]);
     const type = rest.slice(0, sep);
     const buf = base64ToBuffer(rest.slice(sep + 1));
     return new Blob([buf], { type });

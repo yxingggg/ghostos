@@ -37,6 +37,30 @@ describe('persistence (fake-indexeddb)', () => {
     expect(new Uint8Array(out as ArrayBuffer)).toEqual(new Uint8Array([1, 2, 3, 250]));
   });
 
+  it('round-trips a Blob through export/import, including empty MIME type', async () => {
+    const bytes = new Uint8Array([9, 8, 7, 255, 0]);
+    await putContent('blobEmptyMime', new Blob([bytes], { type: '' }));
+    await putContent('blobTyped', new Blob([bytes], { type: 'audio/mpeg' }));
+    const dump = await exportAll();
+
+    __resetPersistenceForTests();
+    await importAll(dump);
+
+    const a = await getContent('blobEmptyMime');
+    const b = await getContent('blobTyped');
+    expect(a).toBeInstanceOf(Blob);
+    expect(b).toBeInstanceOf(Blob);
+    expect(new Uint8Array(await (a as Blob).arrayBuffer())).toEqual(bytes);
+    expect(new Uint8Array(await (b as Blob).arrayBuffer())).toEqual(bytes);
+    expect((b as Blob).type).toBe('audio/mpeg');
+  });
+
+  it('ignores unknown kv keys on import', async () => {
+    await importAll({ kv: { settings: { crt: false }, bogus: 123 }, content: {} });
+    expect(await loadSlice('settings')).toEqual({ crt: false });
+    expect(await loadSlice('bogus' as never)).toBeUndefined();
+  });
+
   it('exports and re-imports the whole database', async () => {
     await saveSlice('settings', { crt: true });
     await putContent('blob1', 'payload');

@@ -46,9 +46,16 @@ export const useSettings = create<SettingsStore>((set, get) => ({
   ...defaultSettings,
   hydrated: false,
   hydrate: async () => {
-    const stored = await loadSlice<Settings>('settings');
+    const stored = await loadSlice<Partial<Settings>>('settings');
     if (stored) {
-      set({ ...defaultSettings, ...stored, hydrated: true });
+      // Deep-merge the nested assistant config so a partial stored object never
+      // drops the opt-out default.
+      set({
+        ...defaultSettings,
+        ...stored,
+        assistant: { ...defaultSettings.assistant, ...(stored.assistant ?? {}) },
+        hydrated: true,
+      });
     } else {
       set({ hydrated: true });
     }

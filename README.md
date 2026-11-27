@@ -9,6 +9,26 @@ in your browser with no backend, no accounts, and no external APIs for core feat
 > hooks, and property-based testing). See [`docs/KIRO.md`](docs/KIRO.md) for the
 > development write-up.
 
+- **Repository:** https://github.com/yxingggg/ghostos
+- **Deployment (GitHub Pages):** https://yxingggg.github.io/ghostos/ *(live once the
+  Pages deploy workflow has run on the `main` branch)*
+
+---
+
+## Project status
+
+GhostOS is **feature-complete in code**. Because it was authored in an offline environment
+without npm-registry access, the test suite and production build had **not been executed**
+at authoring time. The distinction matters, so this README separates the two:
+
+- **Implemented** — written to the documented contracts and reviewed statically.
+- **Verified** — confirmed by actually running `typecheck` / `lint` / `test` / `build`,
+  either locally or via the GitHub Actions CI workflow.
+
+Everything below is **implemented**. It becomes **verified** once CI is green (see the
+[CI workflow](.github/workflows/ci.yml)). Do not treat the checks as passing until the
+Actions run reports success. See [Limitations](#limitations-and-remaining-verification).
+
 ---
 
 ## Features
@@ -64,8 +84,9 @@ npm run test:coverage
 
 > Note: GhostOS was authored in an offline sandbox that could not reach the npm registry,
 > so a `package-lock.json` is **not** committed. It is generated the first time you run
-> `npm install`. The CI workflow handles both cases (`npm ci` when a lockfile exists,
-> otherwise `npm install`).
+> `npm install` — commit it afterward to enable reproducible installs and CI caching. The
+> CI and deploy workflows handle both cases (`npm ci` when a lockfile exists, otherwise
+> `npm install`).
 
 ## Architecture
 
@@ -130,6 +151,29 @@ All icons, the wallpaper, and sound effects are original to this project (hand-a
 SVG, CSS/SVG gradients, and runtime-synthesized audio). GhostOS deliberately avoids any
 proprietary branding, logos, startup sounds, or wallpapers.
 
+## Limitations and remaining verification
+
+Honest status of what has and hasn't been confirmed:
+
+- **Not yet executed at authoring time.** `npm install`, `npm run typecheck`, `npm run
+  lint`, `npm test`, and `npm run build` were not run in the authoring environment (no npm
+  registry access there). Run them locally or rely on the CI workflow to verify. Until an
+  Actions run is green, treat the suite and build as *unverified*.
+- **No `package-lock.json` committed.** Generated on first `npm install`; commit it to pin
+  versions and enable CI caching.
+- **Web fonts are not bundled.** To stay fully offline, GhostOS uses system-font fallbacks
+  for the pixel/gothic look rather than loading fonts from a CDN. For the authentic bitmap
+  typeface, drop self-hosted `.woff2` files into `src/assets/fonts/` and uncomment the
+  `@font-face` blocks in `src/styles/fonts.css`.
+- **AI assistant requires your own endpoint.** It is disabled by default and never
+  contacts the network unless you enable it and supply an endpoint; it refuses to send an
+  API key over a non-HTTPS endpoint.
+- **Audio visualization** needs the Web Audio API; where it is unavailable, audio still
+  plays and the visualizer renders a flat baseline instead of failing.
+
+See [`.kiro/specs/ghostos/tasks.md`](.kiro/specs/ghostos/tasks.md) for per-task status
+(`[~]` = implemented but not yet verified by execution; `[x]` = verified).
+
 ## License
 
-[MIT](LICENSE). Update the copyright line with your name/handle before submitting.
+Licensed under the [MIT License](LICENSE) — Copyright (c) 2026 yxingggg.

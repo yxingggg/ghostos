@@ -15,7 +15,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Quality gate: deployment proceeds only after these checks pass.
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+      - name: Type-check
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm test
+
   build:
+    needs: quality
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,8 +45,8 @@ jobs:
         run: |
           if [ -f package-lock.json ]; then npm ci; else npm install; fi
       - name: Build
-        # GHOSTOS_BASE must match the Pages sub-path (repo name). Override here
-        # if your repository name differs from "ghostos".
+        # GHOSTOS_BASE matches the GitHub Pages sub-path for yxingggg/ghostos
+        # (https://yxingggg.github.io/ghostos/). Change it if the repo is renamed.
         env:
           GHOSTOS_BASE: /ghostos/
         run: npm run build

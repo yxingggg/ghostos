@@ -33,6 +33,23 @@ describe('wmStore (integration)', () => {
     useWm.getState().close(a);
     expect(Object.keys(useWm.getState().state.windows)).toHaveLength(0);
   });
+
+  it('persists and restores the window layout across a reload', async () => {
+    __resetPersistenceForTests();
+    useWm.setState({ state: createInitialState() });
+    useWm.getState().open({ appId: 'notes', title: 'GraveNotes', bounds: { x: 40, y: 60, width: 400, height: 300 } });
+    useWm.getState().open({ appId: 'calculator', title: 'Calculator' });
+    // Wait out the debounced layout save.
+    await new Promise((r) => setTimeout(r, 500));
+
+    // Simulate a reload: fresh WM state, then hydrate from storage.
+    useWm.setState({ state: createInitialState() });
+    await useWm.getState().hydrate();
+    const apps = Object.values(useWm.getState().state.windows).map((w) => w.appId).sort();
+    expect(apps).toEqual(['calculator', 'notes']);
+    const notesWin = Object.values(useWm.getState().state.windows).find((w) => w.appId === 'notes');
+    expect(notesWin?.bounds.x).toBe(40);
+  });
 });
 
 describe('notesStore persistence (integration)', () => {

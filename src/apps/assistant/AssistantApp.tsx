@@ -40,6 +40,12 @@ export function AssistantApp(_props: AppComponentProps) {
       setError('No endpoint configured. Set one in Settings.');
       return;
     }
+    // Refuse to send an API key over a non-HTTPS endpoint (cleartext exposure).
+    const isHttps = /^https:\/\//i.test(assistant.endpoint);
+    if (assistant.apiKey && !isHttps) {
+      setError('Refusing to send the API key over a non-HTTPS endpoint. Use an https:// URL.');
+      return;
+    }
     const userMsg: ChatMessage = { role: 'user', content: input };
     const history = [...messages, userMsg];
     setMessages(history);
