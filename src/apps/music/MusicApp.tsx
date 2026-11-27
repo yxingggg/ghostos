@@ -7,6 +7,7 @@ import { useToasts } from '../../state/toastStore';
 import { DEMO_TRACKS } from '../../core/audio/demoTracks';
 import { specToWav } from '../../core/audio/wav';
 import { Visualizer } from './Visualizer';
+import { ensureGraph } from './audioGraph';
 
 const AUDIO_EXT = /\.(mp3|wav|ogg|oga|flac|m4a|aac|weba|opus)$/i;
 
@@ -35,7 +36,7 @@ export function MusicApp({ props }: AppComponentProps) {
   const pushToast = useToasts((s) => s.push);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [audioEl, setAudioEl] = useState<HTMLAudioElement | null>(null);
+  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   const [url, setUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -99,16 +100,22 @@ export function MusicApp({ props }: AppComponentProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentId]);
 
-  // Drive play/pause. Autoplay may be blocked until a user gesture; if so, we
-  // fall back to paused state instead of throwing.
+  // Drive play/pause. Building the Web Audio graph (for the visualizer) and
+  // resuming the AudioContext happens here, on the user-gesture-driven `playing`
+  // transition, so audio is never left routed through a suspended context.
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
     if (playing) {
-      void el.play().catch(() => {
-        setPlaying(false);
-        pushToast('Press Play to start audio (the browser blocked autoplay).');
-      });
+      void ensureGraph(el)
+        .then((a) => {
+          if (a) setAnalyser(a);
+          return el.play();
+        })
+        .catch(() => {
+          setPlaying(false);
+          pushToast('Press Play to start audio (the browser blocked autoplay).');
+        });
     } else {
       el.pause();
     }
@@ -168,7 +175,7 @@ export function MusicApp({ props }: AppComponentProps) {
         void onAddFiles(e.dataTransfer.files);
       }}
     >
-      <Visualizer audioEl={audioEl} playing={playing} />
+      <Visualizer analyser={analyser} playing={playing} />
 
       {/* Header / import */}
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-y border-crypt-500 px-3 py-1.5">
@@ -200,30 +207,8 @@ export function MusicApp({ props }: AppComponentProps) {
       </div>
 
       {/* Transport */}
-      <div className="flex shrink-0 flex-wrap items-center gap-2 px-3 py-2">
-        <TransportButton label="Previous" onClick={prev} disabled={!hasTracks}>⏮</TransportButton>
-        <TransportButton label={playing ? 'Pause' : 'Play'} onClick={() => setPlaying(!playing)} disabled={!current}>
-          {playing ? '⏸' : '▶'}
-        </TransportButton>
-        <TransportButton
-          label="Stop"
-          onClick={() => {
-            setPlaying(false);
-            if (audioRef.current) audioRef.current.currentTime = 0;
-            setProgress(0);
-          }}
-          disabled={!current}
-        >
-          ⏹
-        </TransportButton>
-        <TransportButton label="Next" onClick={next} disabled={!hasTracks}>⏭</TransportButton>
-        <TransportButton
-          label={`Repeat: ${repeat}`}
-          onClick={cycleRepeat}
-          active={repeat !== 'off'}
-        >
-          {repeat === 'one' ? '🔂' : '🔁'}
-        </TransportButton>
+      <div className="flex shrink-0 flex-col gap-2 px-3 py-2">
+        {/* Seek on its own full-width row so it never crowds the buttons. */}
         <input
           type="range"
           aria-label="Seek"
@@ -237,21 +222,45 @@ export function MusicApp({ props }: AppComponentProps) {
             if (audioRef.current) audioRef.current.currentTime = t;
             setProgress(t);
           }}
-          className="min-w-[6rem] flex-1 accent-amethyst-500"
+          className="w-full accent-amethyst-500"
         />
-        <TransportButton label={muted ? 'Unmute' : 'Mute'} onClick={toggleMute} active={muted}>
-          {muted ? '🔇' : '🔊'}
-        </TransportButton>
-        <input
-          type="range"
-          aria-label="Volume"
-          min={0}
-          max={1}
-          step="0.05"
-          value={muted ? 0 : volume}
-          onChange={(e) => setVolume(Number(e.target.value))}
-          className="w-20 accent-amethyst-500"
-        />
+        {/* Buttons + volume wrap freely on narrow widths. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <TransportButton label="Previous" onClick={prev} disabled={!hasTracks}>⏮</TransportButton>
+          <TransportButton label={playing ? 'Pause' : 'Play'} onClick={() => setPlaying(!playing)} disabled={!current}>
+            {playing ? '⏸' : '▶'}
+          </TransportButton>
+          <TransportButton
+            label="Stop"
+            onClick={() => {
+              setPlaying(false);
+              if (audioRef.current) audioRef.current.currentTime = 0;
+              setProgress(0);
+            }}
+            disabled={!current}
+          >
+            ⏹
+          </TransportButton>
+          <TransportButton label="Next" onClick={next} disabled={!hasTracks}>⏭</TransportButton>
+          <TransportButton label={`Repeat: ${repeat}`} onClick={cycleRepeat} active={repeat !== 'off'}>
+            {repeat === 'one' ? '🔂' : '🔁'}
+          </TransportButton>
+          <div className="flex min-w-0 items-center gap-1">
+            <TransportButton label={muted ? 'Unmute' : 'Mute'} onClick={toggleMute} active={muted}>
+              {muted ? '🔇' : '🔊'}
+            </TransportButton>
+            <input
+              type="range"
+              aria-label="Volume"
+              min={0}
+              max={1}
+              step="0.05"
+              value={muted ? 0 : volume}
+              onChange={(e) => setVolume(Number(e.target.value))}
+              className="w-20 accent-amethyst-500"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Playlist / empty state */}
@@ -335,7 +344,6 @@ export function MusicApp({ props }: AppComponentProps) {
         <audio
           ref={(el) => {
             audioRef.current = el;
-            setAudioEl(el);
           }}
           src={url}
           onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}

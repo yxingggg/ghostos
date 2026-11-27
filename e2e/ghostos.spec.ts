@@ -115,3 +115,115 @@ test('Offline Spirit answers without any credentials', async ({ page }) => {
   await assistant.getByRole('button', { name: /what terminal commands/i }).click();
   await expect(assistant.getByText(/mkdir/i)).toBeVisible();
 });
+
+// --- Regression tests for the three reported bugs ---
+
+/** Build a small valid mono 16-bit WAV (a short sine tone) as a Node Buffer. */
+function makeWav(seconds = 1, freq = 220, sampleRate = 8000): Buffer {
+  const n = Math.floor(seconds * sampleRate);
+  const data = Buffer.alloc(44 + n * 2);
+  data.write('RIFF', 0);
+  data.writeUInt32LE(36 + n * 2, 4);
+  data.write('WAVE', 8);
+  data.write('fmt ', 12);
+  data.writeUInt32LE(16, 16);
+  data.writeUInt16LE(1, 20);
+  data.writeUInt16LE(1, 22);
+  data.writeUInt32LE(sampleRate, 24);
+  data.writeUInt32LE(sampleRate * 2, 28);
+  data.writeUInt16LE(2, 32);
+  data.writeUInt16LE(16, 34);
+  data.write('data', 36);
+  data.writeUInt32LE(n * 2, 40);
+  for (let i = 0; i < n; i += 1) {
+    const s = Math.sin((2 * Math.PI * freq * i) / sampleRate) * 0.3;
+    data.writeInt16LE(Math.round(s * 0x7fff), 44 + i * 2);
+  }
+  return data;
+}
+
+test('Bug 1: an imported local audio file actually plays (currentTime advances)', async ({
+  page,
+}) => {
+  await boot(page);
+  await launch(page, 'DeadWave');
+  const dw = page.getByRole('dialog', { name: /deadwave/i });
+
+  // Import a real local WAV via the hidden file input (the Import button triggers it).
+  const chooser = page.waitForEvent('filechooser');
+  await dw.getByRole('button', { name: /import audio/i }).click();
+  const fc = await chooser;
+  await fc.setFiles({ name: 'tone.wav', mimeType: 'audio/wav', buffer: makeWav(2, 330) });
+
+  // It appears in the playlist; start playback.
+  const track = dw.getByRole('button', { name: /tone\.wav/i }).first();
+  await expect(track).toBeVisible();
+  await track.click();
+  await expect(dw.getByRole('button', { name: 'Pause' })).toBeVisible({ timeout: 10_000 });
+
+  // Verify REAL playback: the <audio> element's currentTime must advance.
+  const audio = dw.locator('audio');
+  await expect(audio).toHaveCount(1);
+  const t0 = await audio.evaluate((el) => (el as HTMLAudioElement).currentTime);
+  await page.waitForTimeout(1200);
+  const t1 = await audio.evaluate((el) => (el as HTMLAudioElement).currentTime);
+  expect(t1).toBeGreaterThan(t0);
+  // And the element is genuinely playing (not paused/ended).
+  const paused = await audio.evaluate((el) => (el as HTMLAudioElement).paused);
+  expect(paused).toBe(false);
+});
+
+test('Bug 2: DeadWave controls stay reachable when the window is small', async ({ page }) => {
+  await boot(page);
+  await launch(page, 'DeadWave');
+  const dw = page.getByRole('dialog', { name: /deadwave/i });
+
+  const box = await dw.boundingBox();
+  if (box) {
+    await page.mouse.move(box.x + box.width - 2, box.y + box.height - 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 280, box.y + 240, { steps: 10 });
+    await page.mouse.up();
+  }
+
+  const frame = await dw.boundingBox();
+  // The Play and Import controls remain within the window bounds (not clipped).
+  for (const name of [/play|pause/i, /import audio/i]) {
+    const ctrl = dw.getByRole('button', { name }).first();
+    await expect(ctrl).toBeVisible();
+    const b = await ctrl.boundingBox();
+    if (b && frame) {
+      expect(b.x).toBeGreaterThanOrEqual(frame.x - 1);
+      expect(b.x + b.width).toBeLessThanOrEqual(frame.x + frame.width + 1);
+      expect(b.y + b.height).toBeLessThanOrEqual(frame.y + frame.height + 1);
+    }
+  }
+});
+
+test('Bug 3: Tomb Explorer overflow menu shows and its actions work', async ({ page }) => {
+  await boot(page);
+  await launch(page, 'Tomb Explorer');
+  const explorer = page.getByRole('dialog', { name: /tomb explorer/i });
+
+  // Shrink the window so secondary toolbar actions collapse into the overflow.
+  const box = await explorer.boundingBox();
+  if (box) {
+    await page.mouse.move(box.x + box.width - 2, box.y + box.height - 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 250, box.y + 240, { steps: 10 });
+    await page.mouse.up();
+  }
+
+  const more = explorer.getByRole('button', { name: /more actions/i });
+  await expect(more).toBeVisible();
+  await more.click();
+
+  // The overflow menu must be visible (not clipped by the toolbar container).
+  const menu = page.getByRole('menu', { name: /more actions/i });
+  await expect(menu).toBeVisible();
+
+  // Executing a collapsed action must work. "New File" is a low-priority action
+  // that collapses into the overflow at this width; it creates untitled.txt.
+  await menu.getByRole('menuitem', { name: 'New File' }).click();
+  await expect(explorer.getByRole('button', { name: 'untitled.txt' })).toBeVisible();
+});

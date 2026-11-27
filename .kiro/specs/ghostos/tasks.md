@@ -224,6 +224,25 @@
     Chromium. NOT claimed to pass until an Actions run executes it.
   - _Requirements: 15.3, 15.5_
 
+- [ ] 26. Fix three manual-testing bugs (playback, resize, overflow menu)
+  - 26.1 DeadWave imported songs didn't play. Root cause: the Visualizer created
+    the MediaElementSource graph on mount (before a user gesture) with the
+    AudioContext left suspended, which silently rerouted and muted the element.
+    Fix: own the graph in MusicApp, build+resume it on the Play gesture
+    (`audioGraph.ts`), keep source→analyser→destination; Visualizer only reads an
+    analyser prop. _Requirements: 9.5, 9.7_
+  - 26.2 DeadWave clipped on resize. Fix: seek on its own full-width row;
+    buttons/volume wrap; playlist scrolls independently; `min-h-0` column.
+    _Requirements: 9, 12.3_
+  - 26.3 Explorer overflow (⋯) menu didn't show. Root cause: it was `absolute`
+    inside the toolbar's `overflow-hidden` container, so it was clipped. Fix:
+    render the menu as a fixed-position popover anchored to the trigger rect,
+    above the clip, with Escape/outside-click/scroll dismissal. _Requirements: 12.3_
+  - 26.4 Playwright regressions: real local WAV import with advancing
+    `audio.currentTime`; DeadWave small-window control visibility; Explorer
+    overflow menu opens and a collapsed action executes. _Requirements: 15.3_
+  - _Requirements: 9, 12.3, 15.3_
+
 > Verification (CI run on commit ed4fb38): build-and-test green — 160 unit/integration/
 > property tests across 20 files, type-check, lint, production build; e2e job green — 5
 > Playwright tests passed in real Chromium (create→open→edit→save→reload→persist;
