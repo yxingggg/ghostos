@@ -110,7 +110,7 @@ export async function putContent(
   // reliably through every IndexedDB implementation (notably fake-indexeddb
   // under jsdom), and callers that need a Blob (the music player) reconstruct
   // one from their own retained MIME type. Strings and buffers are stored as-is.
-  const toStore = isBlobLike(value) ? await value.arrayBuffer() : value;
+  const toStore = isBlobLike(value) ? await blobToArrayBuffer(value) : value;
   memory.content.set(id, toStore);
   try {
     const db = await getDB();
@@ -193,6 +193,22 @@ function isArrayBufferLike(value: unknown): value is ArrayBuffer {
   return tagOf(value) === '[object ArrayBuffer]';
 }
 
+/**
+ * Read a Blob's bytes portably. jsdom's Blob historically lacks arrayBuffer(),
+ * so fall back to the Response wrapper, then to a FileReader, so this works in
+ * browsers and the jsdom test environment alike.
+ */
+async function blobToArrayBuffer(blob: Blob): Promise<ArrayBuffer> {
+  if (typeof blob.arrayBuffer === 'function') return blob.arrayBuffer();
+  if (typeof Response !== 'undefined') return new Response(blob).arrayBuffer();
+  return new Promise<ArrayBuffer>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as ArrayBuffer);
+    reader.onerror = () => reject(reader.error ?? new Error('read failed'));
+    reader.readAsArrayBuffer(blob);
+  });
+}
+
 async function serializeContent(value: unknown): Promise<string> {
   // Encode blobs/buffers as base64 data so export is pure JSON.
   if (typeof value === 'string') return `str:${value}`;
@@ -208,7 +224,7 @@ async function serializeContent(value: unknown): Promise<string> {
     return `b64:${bufferToBase64(slice)}`;
   }
   if (isBlobLike(value)) {
-    const buf = await value.arrayBuffer();
+    const buf = await blobToArrayBuffer(value);
     return `blob:${value.type}:${bufferToBase64(buf)}`;
   }
   return 'str:';
