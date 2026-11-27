@@ -276,13 +276,18 @@ third-party icon packs. Provenance of what ships:
   provenance note.
 
 **External audio used only for testing (not shipped).** During development, DeadWave's
-local-file playback and import were manually tested with an external track, *"Flow
-Electric"* by **1000 Handz**. This track is **not** included in the repository, **not**
-tracked in git, and **not** bundled or precached in the build — the PWA precache lists no
-audio file types, and the only audio GhostOS distributes is the runtime-synthesized demo
-tracks and sound effects above. All rights to *"Flow Electric"* belong to its creator;
-GhostOS claims **no ownership and no licensing rights** to it and merely credits it as a
-test input. To reproduce the test, supply your own audio file via DeadWave's Import button.
+local-file playback and import were manually tested with an external track:
+
+> *"Flow Electric"* by **[1000 Handz](https://1000handz.com/)**, from the Free Music
+> Archive ([source](https://freemusicarchive.org/music/1000-handz/cc-by-free-to-use-dancehouse-instrumentals/flow-electric/)),
+> licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+This track is **not** included in the repository, **not** tracked in git, and **not**
+bundled or precached in the build — the PWA precache lists no audio file types, and the
+only audio GhostOS distributes is the runtime-synthesized demo tracks and sound effects
+above. It is credited here purely as a test input; all rights remain with the artist and
+GhostOS claims **no ownership or licensing rights** to it. To reproduce the test, supply
+your own audio file via DeadWave's Import button.
 
 ## Limitations and remaining verification
 
