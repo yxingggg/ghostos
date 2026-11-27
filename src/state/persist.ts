@@ -84,14 +84,21 @@ export async function loadSlice<T>(name: SliceName): Promise<T | undefined> {
   }
 }
 
-export async function saveSlice<T>(name: SliceName, value: T): Promise<void> {
+/**
+ * Persist a KV slice. Returns true when it was durably written to IndexedDB,
+ * false when only the in-memory fallback holds it (storage unavailable), so
+ * callers can surface an honest "not durably saved" state instead of lying.
+ */
+export async function saveSlice<T>(name: SliceName, value: T): Promise<boolean> {
   memory.kv.set(name, value);
   try {
     const db = await getDB();
-    if (!db) return;
+    if (!db) return false;
     await db.put(KV_STORE, value, name);
+    return true;
   } catch (e) {
     markDegraded(e instanceof Error ? e.message : 'write failed');
+    return false;
   }
 }
 
@@ -108,14 +115,17 @@ export async function getContent(
   }
 }
 
-export async function putContent(id: string, value: StoredContent): Promise<void> {
+/** Store content. Returns true if durably written to IndexedDB, false if only in memory. */
+export async function putContent(id: string, value: StoredContent): Promise<boolean> {
   memory.content.set(id, value);
   try {
     const db = await getDB();
-    if (!db) return;
+    if (!db) return false;
     await db.put(CONTENT_STORE, value, id);
+    return true;
   } catch (e) {
     markDegraded(e instanceof Error ? e.message : 'write failed');
+    return false;
   }
 }
 

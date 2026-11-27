@@ -35,9 +35,11 @@ export const PROVIDER_PRESETS: Record<ProviderId, ProviderPreset> = {
     label: 'Google Gemini',
     shape: 'gemini',
     defaultEndpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
-    defaultModel: 'gemini-2.5-flash',
+    // Preview model names change over time; this is only a default and the model
+    // field stays editable so users can switch to whatever is available.
+    defaultModel: 'gemini-3-flash-preview',
     auth: 'x-goog-api-key',
-    note: 'Google Gemini generateContent API. The endpoint is the models base; the model name is appended automatically.',
+    note: 'Google Gemini generateContent API. The endpoint is the models base; the model name is appended automatically. The default is a preview model — edit it if it is unavailable.',
   },
   custom: {
     id: 'custom',

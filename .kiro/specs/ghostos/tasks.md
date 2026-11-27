@@ -173,3 +173,30 @@
     a real OpenAI/Gemini provider was not exercised (no credentials/outbound access in CI
     or the sandbox); provider request/response/error logic is covered by unit tests only.
   - _Requirements: 10_
+
+- [ ] 21. GraveNotes ↔ Tomb Explorer file-save integration (reported bug)
+  - Root cause: GraveNotes standalone documents lived only in notesStore and were never
+    written to the virtual filesystem, so they never appeared in Tomb Explorer. The gap
+    was integration between notesStore and vfsStore, not IndexedDB persistence.
+  - [ ] 21.1 GraveNotes File menu (New, Open, Save, Save As, Close) over real VFS files;
+    legacy quick notes kept with a "Save as File" promotion. _Requirements: 6b.1, 6b.6, 6b.12_
+  - [ ] 21.2 SaveAsDialog: name + `.txt`/`.md` extension + destination folder; duplicate
+    handling with overwrite confirmation (no duplicate copies). _Requirements: 6b.3, 6b.7_
+  - [ ] 21.3 Bind editor to the created/opened file id; subsequent saves update the same
+    file; files appear in Explorer immediately. _Requirements: 6b.2, 6b.4, 6b.11_
+  - [ ] 21.4 Robust save controller: Ctrl/Cmd+S (prevent browser dialog), real
+    Unsaved/Saving/Saved/Save-failed status from actual persistence results, monotonic
+    version guard against stale autosave, flush on close. _Requirements: 6b.5, 6b.8–6b.10_
+  - [ ] 21.5 persist.saveSlice/putContent return durability; vfsStore.writeText returns a
+    result and preserves the file's MIME; added saveTextAs and folders selectors.
+  - [ ] 21.6 Tests: unit (saveTextAs/durability), integration (acceptance workflow:
+    new → type → Save As → appears in VFS → reopen → edit → save → persists;
+    Ctrl+S opens Save As; Open dialog; Save-failed indicator), plus Playwright e2e.
+    _Requirements: 15.3_
+  - No IndexedDB reset; existing notes preserved; registry-driven (no WM branching).
+  - _Requirements: 6b_
+
+- [ ] 22. Gemini default model → gemini-3-flash-preview
+  - Update the Gemini preset default model; keep the model field editable; don't overwrite
+    a user-configured model without an explicit provider switch; update tests/placeholders.
+  - _Requirements: 10.4_

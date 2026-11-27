@@ -135,4 +135,26 @@ describe('presets', () => {
     expect(PROVIDER_PRESETS.gemini.shape).toBe('gemini');
     expect(PROVIDER_PRESETS.custom.shape).toBe('openai');
   });
+
+  it('defaults Gemini to the gemini-3-flash-preview model', () => {
+    expect(PROVIDER_PRESETS.gemini.defaultModel).toBe('gemini-3-flash-preview');
+  });
+
+  it('uses the preset default model only when the user leaves it blank', () => {
+    const base = 'https://generativelanguage.googleapis.com/v1beta/models';
+    // Blank model -> falls back to the preset default.
+    const d = buildRequest(
+      { provider: 'gemini', endpoint: base, model: '', apiKey: 'k' },
+      [{ role: 'user', content: 'hi' }],
+    );
+    expect(d.ok).toBe(true);
+    if (d.ok) expect(d.request.url).toContain('gemini-3-flash-preview:generateContent');
+    // A user-configured model is never overwritten.
+    const u = buildRequest(
+      { provider: 'gemini', endpoint: base, model: 'gemini-2.5-flash', apiKey: 'k' },
+      [{ role: 'user', content: 'hi' }],
+    );
+    expect(u.ok).toBe(true);
+    if (u.ok) expect(u.request.url).toContain('gemini-2.5-flash:generateContent');
+  });
 });

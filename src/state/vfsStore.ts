@@ -54,7 +54,24 @@ interface VfsStore {
   createFolder: (parentId: NodeId, name: string) => NodeId | null;
   createTextFile: (parentId: NodeId, name: string, content: string) => Promise<NodeId | null>;
   readText: (id: NodeId) => Promise<string>;
-  writeText: (id: NodeId, content: string) => Promise<void>;
+  /**
+   * Write text to a file. Resolves to a result indicating whether the content
+   * was durably persisted to IndexedDB (false = only in-memory fallback).
+   */
+  writeText: (id: NodeId, content: string) => Promise<{ ok: boolean; durable: boolean; error?: string }>;
+  /** All folder nodes (for Save-As destination pickers). */
+  folders: () => VfsNode[];
+  /**
+   * Save text as a file under a folder. If a sibling of the same name exists:
+   * overwrite it when `overwrite` is true, otherwise fail. Returns the file id
+   * (new or existing) on success, or null on failure (error surfaced via toast).
+   */
+  saveTextAs: (
+    parentId: NodeId,
+    name: string,
+    content: string,
+    opts?: { overwrite?: boolean },
+  ) => Promise<NodeId | null>;
   rename: (id: NodeId, name: string) => boolean;
   remove: (id: NodeId) => Promise<void>;
   move: (id: NodeId, newParentId: NodeId) => boolean;
@@ -115,7 +132,7 @@ export const useVfs = create<VfsStore>((set, get) => ({
     }
     await putContent(contentId, content);
     set({ vfs: r.value });
-    persist(r.value);
+    await saveSlice('vfs', r.value);
     return id;
   },
   readText: async (id) => {
@@ -128,18 +145,47 @@ export const useVfs = create<VfsStore>((set, get) => ({
   },
   writeText: async (id, content) => {
     const node = getNode(get().vfs, id);
-    if (!node || node.kind !== 'file') return;
+    if (!node || node.kind !== 'file') {
+      return { ok: false, durable: false, error: 'File no longer exists.' };
+    }
     const contentId = node.contentId ?? createId('content');
-    await putContent(contentId, content);
+    // Preserve the file's existing MIME; only assume text/plain for brand-new content.
+    const mime = node.mime ?? 'text/plain';
+    const contentDurable = await putContent(contentId, content);
     const r = setFileContentMeta(get().vfs, id, {
       contentId,
       size: content.length,
-      mime: 'text/plain',
+      mime,
     });
-    if (r.ok) {
-      set({ vfs: r.value });
-      persist(r.value);
+    if (!r.ok) {
+      return { ok: false, durable: false, error: r.error };
     }
+    set({ vfs: r.value });
+    // Await the node-index write so we report real durability, not a guess.
+    const sliceDurable = await saveSlice('vfs', r.value);
+    return { ok: true, durable: contentDurable && sliceDurable };
+  },
+  folders: () => Object.values(get().vfs.nodes).filter((n) => n.kind === 'folder'),
+  saveTextAs: async (parentId, name, content, opts) => {
+    const existing = childrenOf(get().vfs, parentId).find((n) => n.name === name);
+    if (existing) {
+      if (existing.kind !== 'file') {
+        useToasts.getState().push(`"${name}" is a folder here.`, 'error');
+        return null;
+      }
+      if (!opts?.overwrite) {
+        useToasts.getState().push(`"${name}" already exists.`, 'error');
+        return null;
+      }
+      // Overwrite the existing file in place (same id — no duplicate).
+      const res = await get().writeText(existing.id, content);
+      if (!res.ok) {
+        useToasts.getState().push(res.error ?? 'Save failed.', 'error');
+        return null;
+      }
+      return existing.id;
+    }
+    return get().createTextFile(parentId, name, content);
   },
   rename: (id, name) => {
     const r = renameOp(get().vfs, id, name);

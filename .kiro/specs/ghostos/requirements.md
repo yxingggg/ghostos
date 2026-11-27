@@ -102,7 +102,27 @@ survives reloads and offline sessions.
 1. WHEN a user creates a note THEN the Notes app SHALL store it with a unique id, a title, body text, and created/updated timestamps.
 2. WHEN a user edits a note THEN the Notes app SHALL persist changes (debounced) and SHALL update the updated timestamp.
 3. WHEN a user deletes a note THEN the Notes app SHALL remove it from storage and from the list.
-4. WHEN the Notes app opens THEN it SHALL list existing notes ordered by most recently updated.
+4. WHEN the Notes app opens THEN it SHALL list existing standalone quick notes ordered by most recently updated.
+
+### Requirement 6b: GraveNotes ↔ virtual filesystem integration
+
+**User Story:** As a user, I want documents I create in GraveNotes to become real files
+visible in Tomb Explorer, so that my work is a first-class part of the filesystem.
+
+#### Acceptance Criteria
+
+1. GraveNotes SHALL provide a File menu with New, Open, Save, Save As, and Close.
+2. WHEN a user saves a new standalone document THEN GraveNotes SHALL create a real VFS file (not just a note), and it SHALL appear in Tomb Explorer immediately without a browser refresh.
+3. The Save As dialog SHALL let the user choose a file name, a `.txt` or `.md` extension, and a destination folder.
+4. WHEN a document is first saved THEN GraveNotes SHALL bind the editor to the created file's VFS identifier, so subsequent saves update the SAME file and never create a duplicate.
+5. WHEN a user presses Ctrl/Cmd+S on a document not yet bound to a VFS file THEN GraveNotes SHALL open Save As; WHEN the document is already bound THEN it SHALL update the original file; in both cases it SHALL prevent the browser's default save dialog while the editor is focused.
+6. GraveNotes SHALL let a user open an existing VFS text/Markdown file directly.
+7. WHEN a chosen file name already exists in the destination THEN GraveNotes SHALL require overwrite confirmation (or let the user pick a different name), and SHALL NOT keep two conflicting copies.
+8. GraveNotes SHALL display the current file name, its path, and an accurate save status (Unsaved changes, Saving, Saved, or Save failed), reporting persistence failures explicitly rather than falsely indicating success.
+9. A stale debounced autosave SHALL NOT overwrite newer content (writes are guarded by a monotonic edit version).
+10. WHEN the editor window closes with unsaved edits THEN GraveNotes SHALL flush the pending save.
+11. Saved files SHALL remain accessible after the editor closes or the browser reloads.
+12. Legacy standalone quick notes SHALL be preserved and SHALL offer a "Save as File" action; the integration SHALL never delete existing notes or reset IndexedDB.
 
 ### Requirement 7: Virtual file explorer
 
