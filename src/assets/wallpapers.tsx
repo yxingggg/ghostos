@@ -58,6 +58,22 @@ function CloudBand({ y, fill, opacity = 1, blocks }: { y: number; fill: string; 
 
 // -------------------- Haunted Castle (default) --------------------
 
+type CloudBlock = [number, number, number, number];
+interface CloudCluster {
+  y: number;
+  fill: string;
+  op: number;
+  blocks: CloudBlock[];
+}
+
+const CASTLE_CLOUDS: CloudCluster[] = [
+  { y: 96, fill: '#241f52', op: 0.9, blocks: [[80, 0, 140, 22], [40, 14, 110, 18], [200, -8, 120, 20], [150, 20, 90, 14]] },
+  { y: 150, fill: '#322c66', op: 0.85, blocks: [[560, 0, 150, 24], [640, -12, 120, 20], [700, 10, 170, 22], [820, -2, 120, 18], [520, 18, 100, 16]] },
+  { y: 232, fill: '#423c80', op: 0.8, blocks: [[600, 0, 220, 22], [760, 10, 180, 24], [540, 12, 130, 16], [880, -4, 120, 18]] },
+  { y: 70, fill: '#1d1a45', op: 0.9, blocks: [[300, 0, 180, 18], [420, 10, 150, 16], [900, 6, 130, 18], [980, -4, 80, 14]] },
+  { y: 300, fill: '#4a4590', op: 0.55, blocks: [[640, 0, 260, 20], [840, 8, 160, 18]] },
+];
+
 export const WallpaperCastle: FC<WProps> = ({ className }) => (
   <Scene className={className}>
     <defs>
@@ -120,14 +136,8 @@ export const WallpaperCastle: FC<WProps> = ({ className }) => (
     <circle cx="742" cy="176" r="96" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
 
     {/* Irregular, multi-tone pixel cloud clusters drifting over the moon */}
-    {([
-      { y: 96, fill: '#241f52', op: 0.9, blocks: [[80,0,140,22],[40,14,110,18],[200,-8,120,20],[150,20,90,14]] },
-      { y: 150, fill: '#322c66', op: 0.85, blocks: [[560,0,150,24],[640,-12,120,20],[700,10,170,22],[820,-2,120,18],[520,18,100,16]] },
-      { y: 232, fill: '#423c80', op: 0.8, blocks: [[600,0,220,22],[760,10,180,24],[540,12,130,16],[880,-4,120,18]] },
-      { y: 70, fill: '#1d1a45', op: 0.9, blocks: [[300,0,180,18],[420,10,150,16],[900,6,130,18],[980,-4,80,14]] },
-      { y: 300, fill: '#4a4590', op: 0.55, blocks: [[640,0,260,20],[840,8,160,18]] },
-    ] as const).map((c, i) => (
-      <CloudBand key={i} y={c.y} fill={c.fill} opacity={c.op} blocks={c.blocks as Array<[number,number,number,number]>} />
+    {CASTLE_CLOUDS.map((c, i) => (
+      <CloudBand key={i} y={c.y} fill={c.fill} opacity={c.op} blocks={c.blocks} />
     ))}
 
     {/* Distant mountain ridge + faint ghost spires (left depth) */}
