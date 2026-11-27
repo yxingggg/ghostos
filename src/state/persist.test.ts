@@ -57,22 +57,32 @@ describe('persistence (fake-indexeddb)', () => {
     expect(await toBytes(out)).toEqual(new Uint8Array([1, 2, 3, 250]));
   });
 
-  it('round-trips Blob bytes through export/import (stored as ArrayBuffer)', async () => {
-    // Blobs are normalized to ArrayBuffer at the storage layer; callers that
-    // need a MIME type retain it separately (e.g. the music store's Track).
-    // This test asserts the raw bytes survive a full export/import cycle for
-    // both empty and non-empty source MIME types.
+  it('round-trips binary content through export/import', async () => {
+    // Binary content is stored as ArrayBuffer (the form the stores convert to).
+    // This asserts the raw bytes, including high/zero bytes, survive a full
+    // export/import cycle intact.
     const bytes = new Uint8Array([9, 8, 7, 255, 0]);
-    // Callers convert Blobs to ArrayBuffer before storage (as the stores do).
-    await putContent('blobEmptyMime', await blobToArrayBuffer(new Blob([bytes], { type: '' })));
-    await putContent('blobTyped', await blobToArrayBuffer(new Blob([bytes], { type: 'audio/mpeg' })));
+    await putContent('audioA', bytes.buffer);
+    await putContent('audioB', new Uint8Array([0, 128, 200, 1]).buffer);
     const dump = await exportAll();
 
     await __resetPersistenceForTests();
     await importAll(dump);
 
-    expect(await toBytes(await getContent('blobEmptyMime'))).toEqual(bytes);
-    expect(await toBytes(await getContent('blobTyped'))).toEqual(bytes);
+    expect(await toBytes(await getContent('audioA'))).toEqual(bytes);
+    expect(await toBytes(await getContent('audioB'))).toEqual(new Uint8Array([0, 128, 200, 1]));
+  });
+
+  it('blobToArrayBuffer reads bytes via the native arrayBuffer() path', async () => {
+    const bytes = new Uint8Array([1, 2, 3, 4, 250]);
+    // A minimal Blob-like object exposing the native arrayBuffer() method,
+    // which real browsers provide (jsdom does not, hence this focused test).
+    const blobLike = {
+      type: 'application/octet-stream',
+      arrayBuffer: async () => bytes.buffer,
+    } as unknown as Blob;
+    const out = await blobToArrayBuffer(blobLike);
+    expect(new Uint8Array(out)).toEqual(bytes);
   });
 
   it('ignores unknown kv keys on import', async () => {

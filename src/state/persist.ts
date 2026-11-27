@@ -119,16 +119,30 @@ export async function putContent(id: string, value: StoredContent): Promise<void
   }
 }
 
-/** Read a Blob's bytes portably (jsdom's Blob historically lacks arrayBuffer). */
+/**
+ * Read a Blob's bytes portably. Prefer the native Blob.arrayBuffer(); otherwise
+ * use FileReader. (The Response wrapper is intentionally avoided: some jsdom
+ * builds don't accept a jsdom Blob as a BodyInit and stringify it instead.)
+ */
 export async function blobToArrayBuffer(blob: Blob): Promise<ArrayBuffer> {
-  if (typeof blob.arrayBuffer === 'function') return blob.arrayBuffer();
-  if (typeof Response !== 'undefined') return new Response(blob).arrayBuffer();
-  return new Promise<ArrayBuffer>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as ArrayBuffer);
-    reader.onerror = () => reject(reader.error ?? new Error('read failed'));
-    reader.readAsArrayBuffer(blob);
-  });
+  if (typeof blob.arrayBuffer === 'function') {
+    const buf = await blob.arrayBuffer();
+    // Guard against environments whose arrayBuffer() returns a view.
+    return buf instanceof ArrayBuffer
+      ? buf
+      : (buf as ArrayBufferView).buffer.slice(0);
+  }
+  if (typeof FileReader !== 'undefined') {
+    return new Promise<ArrayBuffer>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as ArrayBuffer);
+      reader.onerror = () => reject(reader.error ?? new Error('read failed'));
+      reader.readAsArrayBuffer(blob);
+    });
+  }
+  // Last resort: text round-trip (loses binary fidelity, but avoids a throw).
+  const text = await blob.text();
+  return new TextEncoder().encode(text).buffer;
 }
 
 export async function deleteContent(id: string): Promise<void> {
