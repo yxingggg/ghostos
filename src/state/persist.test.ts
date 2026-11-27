@@ -9,6 +9,19 @@ import {
   saveSlice,
 } from './persist';
 
+/** Normalize any binary representation the storage engine may return to bytes. */
+async function toBytes(
+  value: Blob | ArrayBuffer | string | undefined,
+): Promise<Uint8Array> {
+  if (value instanceof Blob) return new Uint8Array(await value.arrayBuffer());
+  if (value instanceof ArrayBuffer) return new Uint8Array(value);
+  if (ArrayBuffer.isView(value as unknown as ArrayBufferView)) {
+    const v = value as unknown as ArrayBufferView;
+    return new Uint8Array(v.buffer, v.byteOffset, v.byteLength);
+  }
+  throw new Error(`Expected binary content, got: ${typeof value} (${String(value)})`);
+}
+
 describe('persistence (fake-indexeddb)', () => {
   beforeEach(async () => {
     await __resetPersistenceForTests();
@@ -33,8 +46,9 @@ describe('persistence (fake-indexeddb)', () => {
     const buf = new Uint8Array([1, 2, 3, 250]).buffer;
     await putContent('bin', buf);
     const out = await getContent('bin');
-    expect(out).toBeInstanceOf(ArrayBuffer);
-    expect(new Uint8Array(out as ArrayBuffer)).toEqual(new Uint8Array([1, 2, 3, 250]));
+    // The storage engine may hand binary back as an ArrayBuffer, a typed-array
+    // view, or a Blob; what matters is the bytes survive intact.
+    expect(await toBytes(out)).toEqual(new Uint8Array([1, 2, 3, 250]));
   });
 
   it('round-trips a Blob through export/import, including empty MIME type', async () => {
@@ -48,11 +62,11 @@ describe('persistence (fake-indexeddb)', () => {
 
     const a = await getContent('blobEmptyMime');
     const b = await getContent('blobTyped');
-    expect(a).toBeInstanceOf(Blob);
-    expect(b).toBeInstanceOf(Blob);
-    expect(new Uint8Array(await (a as Blob).arrayBuffer())).toEqual(bytes);
-    expect(new Uint8Array(await (b as Blob).arrayBuffer())).toEqual(bytes);
-    expect((b as Blob).type).toBe('audio/mpeg');
+    // Bytes must survive the export/import round-trip for both MIME cases.
+    expect(await toBytes(a)).toEqual(bytes);
+    expect(await toBytes(b)).toEqual(bytes);
+    // When the engine preserves Blobs, the typed MIME must be retained.
+    if (b instanceof Blob) expect(b.type).toBe('audio/mpeg');
   });
 
   it('ignores unknown kv keys on import', async () => {

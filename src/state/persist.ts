@@ -172,7 +172,17 @@ async function serializeContent(value: unknown): Promise<string> {
   // Encode blobs/buffers as base64 data so export is pure JSON.
   if (typeof value === 'string') return `str:${value}`;
   if (value instanceof ArrayBuffer) return `b64:${bufferToBase64(value)}`;
-  if (value instanceof Blob) {
+  // Some storage engines (and Node/fake-indexeddb) may return a typed-array
+  // view or Node Buffer rather than a raw ArrayBuffer.
+  if (ArrayBuffer.isView(value)) {
+    const view = value as ArrayBufferView;
+    const slice = view.buffer.slice(
+      view.byteOffset,
+      view.byteOffset + view.byteLength,
+    );
+    return `b64:${bufferToBase64(slice)}`;
+  }
+  if (typeof Blob !== 'undefined' && value instanceof Blob) {
     const buf = await value.arrayBuffer();
     return `blob:${value.type}:${bufferToBase64(buf)}`;
   }
