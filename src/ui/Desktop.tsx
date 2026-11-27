@@ -95,7 +95,7 @@ export function Desktop() {
       <div
         role="grid"
         aria-label="Desktop icons"
-        className="absolute left-3 top-3 z-10 grid max-h-[calc(100%-4rem)] grid-flow-col grid-rows-[repeat(auto-fill,minmax(5.5rem,max-content))] content-start gap-2"
+        className="absolute left-3 top-3 grid max-h-[calc(100%-4rem)] grid-flow-col grid-rows-[repeat(auto-fill,minmax(5.5rem,max-content))] content-start gap-2"
         onKeyDown={(e) => {
           if (e.key === 'ArrowDown') {
             e.preventDefault();
