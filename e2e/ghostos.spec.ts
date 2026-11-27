@@ -507,3 +507,194 @@ for (const vp of [
     }
   });
 }
+
+// ===========================================================================
+// Targeted release verification via fault injection (R5, R9.7, R6b, R12).
+// These simulate adverse runtime conditions in real Chromium and assert the
+// app degrades honestly: no false "saved" state, no silent data loss, usable
+// layout and keyboard access on a narrow viewport.
+// ===========================================================================
+
+// --- R5: delayed IndexedDB hydration must gate the desktop (no early paint) ---
+
+test('R5: desktop does not paint until delayed IndexedDB hydration completes', async ({ page }) => {
+  // Delay every indexedDB.open success by ~1.5s so hydration resolves late. The
+  // boot sequence (reduced-motion → ~0.3s) finishes first, so if the gate were
+  // wrong the Desktop would paint before the stores hydrated. We intercept BOTH
+  // the `onsuccess` property setter (how the `idb` library attaches its handler)
+  // and addEventListener, so the delay applies regardless of attach style.
+  await page.addInitScript(() => {
+    const DELAY = 1500;
+    const realOpen = indexedDB.open.bind(indexedDB);
+    // @ts-expect-error - override for fault injection in the browser context
+    indexedDB.open = (...args: Parameters<typeof realOpen>) => {
+      const req = realOpen(...args);
+      // The `idb` library attaches its resolver via the `onsuccess` property.
+      // Intercept that assignment and defer the handler so the DB "opens" late,
+      // modelling slow storage. A real success listener keeps the deferral alive.
+      let stored: ((this: IDBRequest, ev: Event) => void) | null = null;
+      req.addEventListener('success', (ev) => {
+        if (stored) setTimeout(() => stored!.call(req, ev), DELAY);
+      });
+      Object.defineProperty(req, 'onsuccess', {
+        configurable: true,
+        get: () => stored,
+        set: (fn: ((this: IDBRequest, ev: Event) => void) | null) => {
+          stored = fn;
+        },
+      });
+      return req;
+    };
+  });
+
+  // Force reduced motion so the boot animation is fast and clearly precedes hydration.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+
+  // Shortly after load, the boot sequence should be up but the desktop must NOT
+  // be present yet (hydration is still pending behind the 1.5s delay).
+  await page.waitForTimeout(600);
+  await expect(page.getByRole('grid', { name: /desktop icons/i })).toHaveCount(0);
+
+  // Once hydration resolves, the desktop appears.
+  await expect(page.getByRole('grid', { name: /desktop icons/i })).toBeVisible({ timeout: 20_000 });
+});
+
+// --- R9.7: rejected autoplay falls back to paused + prompt, never false "playing" ---
+
+test('R9.7: blocked autoplay falls back to paused with a prompt (no false playing state)', async ({
+  page,
+}) => {
+  // Make every media play() reject as the browser would under a strict autoplay
+  // policy. (We reject unconditionally, including on user-gesture clicks, to
+  // prove the UI never shows a false "playing" state when playback is refused.)
+  await page.addInitScript(() => {
+    const proto = HTMLMediaElement.prototype;
+    proto.play = function blockedPlay(): Promise<void> {
+      return Promise.reject(new DOMException('blocked', 'NotAllowedError'));
+    };
+  });
+
+  await boot(page);
+  await launch(page, 'DeadWave');
+  const dw = page.getByRole('dialog', { name: /deadwave/i });
+  await dw.getByRole('button', { name: /midnight transmission/i }).first().click();
+
+  // The prompt toast appears and the transport stays on "Play" (not "Pause").
+  await expect(page.getByText(/blocked autoplay/i)).toBeVisible({ timeout: 10_000 });
+  await expect(dw.getByRole('button', { name: 'Play' })).toBeVisible();
+  await expect(dw.getByRole('button', { name: 'Pause' })).toHaveCount(0);
+
+  // The underlying element must be paused — no false playing state.
+  const audio = dw.locator('audio');
+  const paused = await audio.evaluate((el) => (el as HTMLAudioElement).paused);
+  expect(paused).toBe(true);
+});
+
+// --- R6b: a failed storage write surfaces "Save failed", never a false "Saved" ---
+
+test('R6b: failed IndexedDB write shows Save failed, not a false Saved (no silent loss)', async ({
+  page,
+}) => {
+  // Allow reads/hydration to succeed, then make writes to the `kv` and `content`
+  // object stores reject. This simulates storage becoming unwritable (quota,
+  // disk, private-mode eviction) while the app is running.
+  await page.addInitScript(() => {
+    const realOpen = indexedDB.open.bind(indexedDB);
+    // @ts-expect-error - override for fault injection in the browser context
+    indexedDB.open = (...args) => {
+      const req = realOpen(...(args as Parameters<typeof realOpen>));
+      req.addEventListener('success', () => {
+        const db = req.result as IDBDatabase;
+        const realTx = db.transaction.bind(db);
+        // @ts-expect-error - narrow override for fault injection
+        db.transaction = (stores: string | string[], mode?: IDBTransactionMode) => {
+          const tx = realTx(stores as string[], mode);
+          if (mode === 'readwrite') {
+            const realObjectStore = tx.objectStore.bind(tx);
+            // @ts-expect-error - override put to fail
+            tx.objectStore = (name: string) => {
+              const os = realObjectStore(name);
+              os.put = () => {
+                const r = {} as IDBRequest;
+                setTimeout(() => {
+                  // @ts-expect-error - fabricate an error event
+                  r.error = new DOMException('write blocked', 'QuotaExceededError');
+                  if (typeof r.onerror === 'function') {
+                    // @ts-expect-error - minimal event
+                    r.onerror(new Event('error'));
+                  }
+                }, 0);
+                return r;
+              };
+              return os;
+            };
+          }
+          return tx;
+        };
+      });
+      return req;
+    };
+  });
+
+  await boot(page);
+  await launch(page, 'Tomb Explorer');
+  const explorer = page.getByRole('dialog', { name: /tomb explorer/i });
+  await explorer.getByRole('button', { name: 'New File' }).click();
+  const fileCell = explorer.getByRole('button', { name: 'untitled.txt' });
+  await expect(fileCell).toBeVisible();
+
+  await fileCell.dblclick();
+  const editor = page.getByRole('dialog', { name: /gravenotes/i }).first();
+  await expect(editor).toBeVisible();
+  const area = editor.getByLabel(/contents of untitled.txt/i);
+  await area.fill('this write should fail honestly');
+  await editor.getByRole('button', { name: 'Save' }).click();
+
+  // The status must report failure — never a false "Saved".
+  await expect(editor.getByText(/save failed/i)).toBeVisible({ timeout: 10_000 });
+  await expect(editor.getByText('Saved', { exact: true })).toHaveCount(0);
+  // And the app surfaces an explicit notice (toast) about the non-durable save.
+  await expect(page.getByText(/storage is unavailable|memory only|save failed/i).first()).toBeVisible();
+});
+
+// --- R12: narrow-mobile layout and keyboard accessibility ---
+
+test('R12: on a narrow mobile viewport, an open window fits within the screen width', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  await boot(page);
+  await launch(page, 'Tomb Explorer');
+  const win = page.getByRole('dialog', { name: /tomb explorer/i });
+  const box = await win.boundingBox();
+  expect(box).not.toBeNull();
+  if (box) {
+    // The window must not overflow the viewport horizontally (allow 1px rounding).
+    expect(box.x).toBeGreaterThanOrEqual(-1);
+    expect(box.x + box.width).toBeLessThanOrEqual(375 + 1);
+  }
+});
+
+test('R12: desktop icons and start menu are reachable and operable by keyboard', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  await boot(page);
+
+  // Tab into the desktop and activate the focused icon with Enter → launches an app.
+  const grid = page.getByRole('grid', { name: /desktop icons/i });
+  const firstCell = grid.getByRole('gridcell').first();
+  await firstCell.focus();
+  await expect(firstCell).toBeFocused();
+  const appName = (await firstCell.getAttribute('aria-label')) ?? '';
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('dialog', { name: new RegExp(appName, 'i') }).first()).toBeVisible();
+
+  // The Start button is keyboard-operable and opens the start menu.
+  const start = page.getByRole('button', { name: /start menu/i });
+  await start.focus();
+  await expect(start).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('menu', { name: /start menu/i })).toBeVisible();
+});

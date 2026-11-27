@@ -38,22 +38,39 @@ export function createInitialState(
   };
 }
 
-function clampSize(bounds: Bounds, c: { minWidth: number; minHeight: number }): Bounds {
+function clampSize(
+  bounds: Bounds,
+  desktop: Desktop,
+  c: { minWidth: number; minHeight: number },
+): Bounds {
+  // A window must be at least the minimum size, but must also never exceed the
+  // desktop (so it stays usable on narrow/mobile viewports). When the desktop
+  // is smaller than the minimum, the desktop wins so the window still fits.
+  const maxWidth = Math.max(1, Math.round(desktop.width));
+  const maxHeight = Math.max(1, Math.round(desktop.height));
   return {
     ...bounds,
-    width: Math.max(c.minWidth, Math.round(bounds.width)),
-    height: Math.max(c.minHeight, Math.round(bounds.height)),
+    width: Math.min(maxWidth, Math.max(c.minWidth, Math.round(bounds.width))),
+    height: Math.min(maxHeight, Math.max(c.minHeight, Math.round(bounds.height))),
   };
 }
 
 /**
  * Clamp a window's position so that at least a MIN_VISIBLE slice of it, and the
  * title bar, remain reachable within the desktop. Width/height are not altered here.
+ *
+ * When the window fully fits within the desktop (width/height ≤ desktop), its
+ * right/bottom edge is additionally kept on-screen so it never overflows the
+ * viewport — important on narrow/mobile layouts where a window is capped to the
+ * desktop width and should sit flush rather than hang off the edge. Oversized
+ * windows (larger than the desktop) keep the MIN_VISIBLE slide-off behavior.
  */
 export function clampPosition(bounds: Bounds, desktop: Desktop): Bounds {
-  const maxX = desktop.width - MIN_VISIBLE;
-  const maxY = desktop.height - TITLEBAR_HEIGHT;
-  const minX = MIN_VISIBLE - bounds.width;
+  const fitsX = bounds.width <= desktop.width;
+  const fitsY = bounds.height <= desktop.height;
+  const maxX = fitsX ? desktop.width - bounds.width : desktop.width - MIN_VISIBLE;
+  const maxY = fitsY ? desktop.height - bounds.height : desktop.height - TITLEBAR_HEIGHT;
+  const minX = fitsX ? 0 : MIN_VISIBLE - bounds.width;
   const minY = 0;
   return {
     ...bounds,
@@ -67,7 +84,7 @@ function clampBounds(
   desktop: Desktop,
   c: { minWidth: number; minHeight: number },
 ): Bounds {
-  return clampPosition(clampSize(bounds, c), desktop);
+  return clampPosition(clampSize(bounds, desktop, c), desktop);
 }
 
 function reindexZ(state: WmState): WmState {

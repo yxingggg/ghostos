@@ -124,6 +124,52 @@ describe('wmReducer — maximize / move / resize', () => {
     s = wmReducer(s, { type: 'SET_DESKTOP', width: 800, height: 600 });
     expect(s.windows.a?.bounds).toEqual({ x: 0, y: 0, width: 800, height: 600 });
   });
+
+  it('OPEN caps a window to the desktop on a narrow (mobile) viewport', () => {
+    // A 600x440 window requested on a 375x667 phone screen must be shrunk to fit.
+    const mobile = { width: 375, height: 667 };
+    const s = open(createInitialState(mobile), 'a', { x: 0, y: 0, width: 600, height: 440 });
+    const b = s.windows.a!.bounds;
+    expect(b.width).toBeLessThanOrEqual(mobile.width);
+    expect(b.height).toBeLessThanOrEqual(mobile.height);
+    // And it stays within the viewport horizontally AND vertically.
+    expect(b.x).toBeGreaterThanOrEqual(0);
+    expect(b.x + b.width).toBeLessThanOrEqual(mobile.width);
+    expect(b.y + b.height).toBeLessThanOrEqual(mobile.height);
+  });
+
+  it('OPEN via cascade keeps a mobile-capped window fully on-screen (no right overflow)', () => {
+    // Regression for R12: before the fit-on-screen clamp, a cascade-placed
+    // window (origin x=64) capped to the desktop width still hung 64px off the
+    // right edge. A window that fits the desktop must not overflow it.
+    const mobile = { width: 375, height: 667 };
+    // No explicit bounds → cascade placement + default size, then capped.
+    const s = wmReducer(createInitialState(mobile), {
+      type: 'OPEN',
+      id: 'a',
+      appId: 'app',
+      title: 'a',
+    });
+    const b = s.windows.a!.bounds;
+    expect(b.x).toBeGreaterThanOrEqual(0);
+    expect(b.x + b.width).toBeLessThanOrEqual(mobile.width);
+    expect(b.y + b.height).toBeLessThanOrEqual(mobile.height);
+  });
+
+  it('RESIZE cannot grow a window beyond the desktop', () => {
+    let s = open(createInitialState(desktop), 'a');
+    s = wmReducer(s, { type: 'RESIZE', id: 'a', bounds: { width: 99999, height: 99999 } });
+    expect(s.windows.a!.bounds.width).toBeLessThanOrEqual(desktop.width);
+    expect(s.windows.a!.bounds.height).toBeLessThanOrEqual(desktop.height);
+  });
+
+  it('SET_DESKTOP shrinks an oversized non-maximized window to the new desktop', () => {
+    let s = open(createInitialState(desktop), 'a', { x: 0, y: 0, width: 900, height: 700 });
+    s = wmReducer(s, { type: 'SET_DESKTOP', width: 360, height: 640 });
+    const b = s.windows.a!.bounds;
+    expect(b.width).toBeLessThanOrEqual(360);
+    expect(b.height).toBeLessThanOrEqual(640);
+  });
 });
 
 // ---------- Property-based tests (invariants) ----------
@@ -182,9 +228,20 @@ function checkInvariants(s: WmState): void {
     expect(w.zIndex).toBe(i + 1);
     expect(w.bounds.width).toBeGreaterThanOrEqual(s.constraints.minWidth);
     expect(w.bounds.height).toBeGreaterThanOrEqual(s.constraints.minHeight);
+    // size never exceeds the desktop (so windows stay usable on any viewport;
+    // valid here because every property run uses a desktop larger than the min).
+    expect(w.bounds.width).toBeLessThanOrEqual(s.desktop.width);
+    expect(w.bounds.height).toBeLessThanOrEqual(s.desktop.height);
     // title bar reachable
     expect(w.bounds.x).toBeLessThanOrEqual(s.desktop.width);
     expect(w.bounds.y).toBeLessThanOrEqual(s.desktop.height);
+    // A window that fits within the desktop is kept fully on-screen (no edge
+    // overflow). Valid for every run here since size is capped ≤ desktop.
+    if (w.bounds.width <= s.desktop.width && w.bounds.height <= s.desktop.height) {
+      expect(w.bounds.x).toBeGreaterThanOrEqual(0);
+      expect(w.bounds.x + w.bounds.width).toBeLessThanOrEqual(s.desktop.width);
+      expect(w.bounds.y + w.bounds.height).toBeLessThanOrEqual(s.desktop.height);
+    }
   });
 }
 
