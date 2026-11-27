@@ -171,7 +171,9 @@ describe('vfsStore persistence (integration)', () => {
     expect(fileId).not.toBeNull();
     if (!fileId) return;
     const buf = await useVfs.getState().readBinary(fileId);
-    expect(buf).toBeInstanceOf(ArrayBuffer);
-    expect(new TextDecoder().decode(buf as ArrayBuffer)).toBe('hi');
+    // Avoid `instanceof ArrayBuffer` (unreliable cross-realm under jsdom); assert
+    // the decoded bytes instead, which is the contract that matters.
+    expect(buf).not.toBeNull();
+    expect(new TextDecoder().decode(new Uint8Array(buf as ArrayBuffer))).toBe('hi');
   });
 });

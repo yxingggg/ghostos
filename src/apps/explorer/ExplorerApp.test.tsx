@@ -65,19 +65,18 @@ describe('ExplorerApp — opening files (regression for "files cannot be opened"
     const user = userEvent.setup();
     render(<ExplorerApp windowId="exp" />);
     await user.click(screen.getByRole('button', { name: 'New Folder' }));
-    const folderBtn = await screen.findByRole('button', { name: 'New Folder' });
-    // Note: the toolbar button and the created folder share the label "New Folder";
-    // the grid cell is the one with aria-label set. Target via the list.
-    const cells = screen.getAllByRole('button', { name: 'New Folder' });
-    const gridCell = cells.find((c) => c.getAttribute('aria-label') === 'New Folder');
-    expect(gridCell).toBeDefined();
+    // The toolbar button and the created folder cell share the text "New Folder";
+    // the grid cell is the one carrying an explicit aria-label.
+    const gridCell = screen
+      .getAllByRole('button', { name: 'New Folder' })
+      .find((c) => c.getAttribute('aria-label') === 'New Folder');
+    expect(gridCell).toBeTruthy();
     if (!gridCell) return;
     await user.dblClick(gridCell);
     // No app window should open for a folder navigation.
     expect(Object.keys(useWm.getState().state.windows)).toHaveLength(0);
     // Breadcrumb now shows the folder.
     expect(screen.getByRole('navigation', { name: /breadcrumb/i })).toHaveTextContent('New Folder');
-    void folderBtn;
   });
 
   it('shows a context menu with the documented actions on right-click', async () => {

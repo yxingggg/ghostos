@@ -1,10 +1,16 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { AppComponentProps } from '../registry';
 import { useSettings } from '../../state/settingsStore';
 import { exportAll, importAll } from '../../state/persist';
 import { useToasts } from '../../state/toastStore';
+import {
+  PROVIDER_PRESETS,
+  type ProviderConfig,
+  type ProviderId,
+} from '../../core/assistant/providers';
+import { testConnection } from '../assistant/client';
 
-export function SettingsApp(_props: AppComponentProps) {
+export function SettingsApp({ props }: AppComponentProps) {
   const crt = useSettings((s) => s.crt);
   const reducedMotion = useSettings((s) => s.reducedMotion);
   const sound = useSettings((s) => s.sound);
@@ -13,6 +19,40 @@ export function SettingsApp(_props: AppComponentProps) {
   const setAssistant = useSettings((s) => s.setAssistant);
   const push = useToasts((s) => s.push);
   const fileRef = useRef<HTMLInputElement>(null);
+  const assistantSectionRef = useRef<HTMLDivElement>(null);
+  const [testState, setTestState] = useState<
+    { status: 'idle' | 'testing' } | { status: 'ok' | 'error'; message: string }
+  >({ status: 'idle' });
+
+  // When launched from Spirit Assistant with focus:'assistant', scroll there.
+  useEffect(() => {
+    if (props?.focus === 'assistant') {
+      assistantSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [props]);
+
+  const preset = PROVIDER_PRESETS[assistant.provider];
+
+  async function runTest() {
+    setTestState({ status: 'testing' });
+    const cfg: ProviderConfig = {
+      provider: assistant.provider,
+      endpoint: assistant.endpoint ?? preset.defaultEndpoint,
+      model: assistant.model ?? preset.defaultModel,
+      apiKey: assistant.apiKey ?? '',
+    };
+    const res = await testConnection(cfg);
+    if (res.ok) setTestState({ status: 'ok', message: 'Connection succeeded — the spirit answered.' });
+    else setTestState({ status: 'error', message: res.error });
+  }
+
+  function chooseProvider(id: ProviderId) {
+    const p = PROVIDER_PRESETS[id];
+    // Switching provider clears the key (handled in the store) and prefills
+    // sensible defaults for the new provider.
+    setAssistant({ provider: id, endpoint: p.defaultEndpoint, model: p.defaultModel });
+    setTestState({ status: 'idle' });
+  }
 
   async function doExport() {
     const data = await exportAll();
@@ -71,41 +111,72 @@ export function SettingsApp(_props: AppComponentProps) {
         <p className="text-sm text-bone-500">Everything is stored locally in your browser (IndexedDB).</p>
       </Section>
 
-      <Section title="AI Assistant (optional, opt-in)">
-        <Toggle
-          label="Enable AI assistant"
-          checked={assistant.enabled}
-          onChange={() => setAssistant({ enabled: !assistant.enabled })}
-        />
-        <p className="text-sm text-bone-500">
-          Disabled by default. The rest of GhostOS works fully offline. When enabled, requests go
-          directly from your browser to the endpoint you configure below — nothing is sent anywhere
-          unless you turn this on.
-        </p>
-        {assistant.enabled && (
-          <div className="mt-2 flex flex-col gap-2">
-            <Field
-              label="Endpoint URL"
-              value={assistant.endpoint ?? ''}
-              placeholder="https://your-endpoint/v1/chat/completions"
-              onChange={(v) => setAssistant({ endpoint: v })}
-            />
-            <Field
-              label="Model"
-              value={assistant.model ?? ''}
-              placeholder="model name"
-              onChange={(v) => setAssistant({ model: v })}
-            />
-            <Field
-              label="API key"
-              value={assistant.apiKey ?? ''}
-              placeholder="stored locally only"
-              type="password"
-              onChange={(v) => setAssistant({ apiKey: v })}
-            />
-          </div>
-        )}
-      </Section>
+      <div ref={assistantSectionRef} id="assistant-settings">
+        <Section title="AI Assistant">
+          <p className="text-sm text-bone-500">
+            Spirit Assistant always has an <strong>offline help mode</strong> that needs no setup.
+            The <strong>online AI mode</strong> below is optional and opt-in: when enabled, your
+            messages are sent from your browser directly to the provider you configure — they leave
+            your device. GhostOS never sends your files or notes, and your API key is kept only in
+            this browser session (never saved to disk or included in backups).
+          </p>
+          <Toggle
+            label="Enable online AI mode"
+            checked={assistant.enabled}
+            onChange={() => setAssistant({ enabled: !assistant.enabled })}
+          />
+          {assistant.enabled && (
+            <div className="mt-2 flex flex-col gap-2">
+              <label className="flex flex-col gap-1 text-base">
+                <span className="text-bone-300">Provider</span>
+                <select
+                  aria-label="Provider"
+                  value={assistant.provider}
+                  onChange={(e) => chooseProvider(e.target.value as ProviderId)}
+                  className="rounded-sm border border-crypt-500 bg-crypt-900 px-2 py-1 text-bone-100 outline-none focus:border-amethyst-500"
+                >
+                  {Object.values(PROVIDER_PRESETS).map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p className="text-xs text-bone-500">{preset.note}</p>
+              <Field
+                label={preset.shape === 'gemini' ? 'Endpoint (models base URL)' : 'Endpoint URL'}
+                value={assistant.endpoint ?? ''}
+                placeholder={preset.defaultEndpoint || 'https://your-endpoint/v1/chat/completions'}
+                onChange={(v) => setAssistant({ endpoint: v })}
+              />
+              <Field
+                label="Model"
+                value={assistant.model ?? ''}
+                placeholder={preset.defaultModel || 'model name'}
+                onChange={(v) => setAssistant({ model: v })}
+              />
+              <Field
+                label="API key (session only)"
+                value={assistant.apiKey ?? ''}
+                placeholder="kept in memory, never saved or exported"
+                type="password"
+                onChange={(v) => setAssistant({ apiKey: v })}
+              />
+              <div className="flex items-center gap-2">
+                <ActionButton onClick={() => void runTest()}>
+                  {testState.status === 'testing' ? 'Testing…' : 'Test Connection'}
+                </ActionButton>
+                {testState.status === 'ok' && (
+                  <span className="text-sm text-spectral-500">{testState.message}</span>
+                )}
+                {testState.status === 'error' && (
+                  <span className="text-sm text-blood-500">{testState.message}</span>
+                )}
+              </div>
+            </div>
+          )}
+        </Section>
+      </div>
     </div>
   );
 }

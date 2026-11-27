@@ -143,3 +143,29 @@
     IndexedDB reset or breaking persistence change. Existing files and standalone
     GraveNotes behavior preserved.
   - _Requirements: 7b, 7c_
+
+- [ ] 20. Spirit Assistant: offline help mode + robust online AI mode
+  - Root cause of "No endpoint configured": the assistant had only an online mode that
+    required configuration, with no default offline capability.
+  - [ ] 20.1 Pure `core/assistant/offlineHelp.ts`: local knowledge base + keyword matcher
+    + suggested questions + graceful fallback; labeled as non-generative. Unit tested.
+    _Requirements: 10.1, 10.2_
+  - [ ] 20.2 Pure `core/assistant/providers.ts`: OpenAI/Gemini/custom presets,
+    `buildRequest`/`parseResponse`, HTTP + network/timeout/CORS error classification,
+    HTTPS-with-key guard. Unit tested. _Requirements: 10.4, 10.6, 10.9_
+  - [ ] 20.3 `apps/assistant/client.ts`: fetch wrapper with AbortController timeout; never
+    throws. _Requirements: 10.6_
+  - [ ] 20.4 AssistantApp: Offline Spirit tab (default) with clickable suggestions; Online
+    AI tab (opt-in) with chat, provider banner, and "Open Assistant Settings" navigation.
+    _Requirements: 10.1–10.3, 10.5, 10.10_
+  - [ ] 20.5 Settings: provider preset selector, endpoint/model/key fields, Test
+    Connection button with success/error, and an `assistant-settings` anchor.
+    _Requirements: 10.4, 10.5_
+  - [ ] 20.6 settingsStore: `provider`; API key session-only (stripped from persist and
+    export); cleared on provider/endpoint change. Unit tested. _Requirements: 10.7, 10.8_
+  - [ ] 20.7 Tests: offline matcher, provider formatting/parse/errors, credential handling,
+    and AssistantApp integration (offline answers; online opt-in → open settings).
+    _Requirements: 15.3_
+  - Offline mode works with no external dependency or network. API keys never hardcoded or
+    committed. Registry-driven settings navigation (no WM branching).
+  - _Requirements: 10_

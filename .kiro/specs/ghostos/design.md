@@ -281,6 +281,34 @@ Flow: the Explorer calls `associate(name, mime)` to pick a target `appId`, then
 
 Folders navigate in place (no window launched).
 
+## Spirit Assistant
+
+The assistant has two modes, both built on pure core modules so logic is testable without
+the DOM or network:
+
+- **Offline help** (`core/assistant/offlineHelp.ts`) — a curated `HELP_TOPICS` knowledge
+  base and `answerQuestion(query)` that tokenizes the query and scores it against each
+  topic's keywords, returning the best match or a graceful fallback. It is explicitly a
+  rule-based helper (not a generative model), exposes `suggestedQuestions()` for clickable
+  prompts, and makes no network calls. This is the default tab.
+- **Online AI** (`core/assistant/providers.ts`) — pure request/response formatting:
+  `PROVIDER_PRESETS` for OpenAI, Google Gemini, and a custom OpenAI-compatible endpoint;
+  `buildRequest(cfg, messages)` produces a `{ url, headers, body }` descriptor matching the
+  provider's shape (OpenAI `chat/completions` with `Authorization: Bearer`; Gemini
+  `…/{model}:generateContent` with `x-goog-api-key`); `parseResponse(shape, data)` extracts
+  the reply; `classifyHttpError`/`classifyNetworkError` map failures (401/403, 404, 429,
+  5xx, CORS/offline, timeout) to clear messages. The only impure piece is the thin
+  `apps/assistant/client.ts` `sendToProvider` wrapper, which performs `fetch` with an
+  `AbortController` timeout and never throws.
+
+**Security:** `buildRequest` refuses to attach an API key to a non-HTTPS endpoint. The
+settings store keeps `assistant.apiKey` in session memory only — `persist()` strips it
+before writing, so it is never saved to IndexedDB or included in exports/logs — and
+`setAssistant` clears the key when the provider or endpoint changes. Only the conversation
+is sent to the provider; VFS files and notes are never included. The assistant opens its
+Settings section via the registry (`wm.open({ appId: 'settings', props: { focus:
+'assistant' } })`), keeping the window manager app-agnostic.
+
 ### File management operations
 
 `vfsStore` gains `duplicate(id)` (copies a file's content under a non-colliding

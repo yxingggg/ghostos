@@ -47,8 +47,12 @@ confirm it in a browser. See [Limitations](#limitations-and-remaining-verificati
 - **Desktop shell** — original pixel-gothic icons, a start menu, and a taskbar with a
   live clock and per-window buttons.
 - **Persistent virtual file system** — a single-rooted tree stored in IndexedDB.
-- **Tomb Explorer** — a file manager: create/rename/delete/navigate folders and files.
-- **GraveNotes** — a persistent note editor (debounced autosave, ordered by recency).
+- **Tomb Explorer** — a file manager: create/rename/delete/duplicate/download/navigate,
+  a right-click context menu, Properties, and **opening files** (double-click or Enter)
+  into the right app by type.
+- **GraveNotes** — a persistent note editor (debounced autosave, ordered by recency) that
+  also opens and edits text/Markdown files from the filesystem in place.
+- **Spectral Viewer** — previews image files opened from Tomb Explorer.
 - **Phantom Terminal** — a simulated shell operating **only** on the virtual file system
   (`help`, `ls`, `cd`, `cat`, `mkdir`, `touch`, `rm`, `echo`, `clear`, `pwd`, `whoami`)
   with command history.
@@ -56,8 +60,13 @@ confirm it in a browser. See [Limitations](#limitations-and-remaining-verificati
 - **DeadWave** — a local audio player with a real-time Web Audio spectrum visualizer.
 - **Settings** — toggle CRT effects, reduced motion, and sound; export/import your whole
   workspace as a JSON backup.
-- **Optional Spirit Assistant** — disabled by default; opt in and point it at your own
-  endpoint. Nothing leaves your browser unless you enable it.
+- **Spirit Assistant** — an **offline help mode** by default (rule-based answers about
+  GhostOS from local docs, with clickable suggested questions; no API key, no network, not
+  a generative model), plus an **optional online AI mode** with provider presets (OpenAI,
+  Google Gemini, custom OpenAI-compatible), a Test Connection button, and graceful error
+  handling. Online mode is opt-in; your API key stays in session memory (never saved or
+  exported), is never sent over non-HTTPS, and only your messages are sent — never your
+  files or notes.
 - **Offline-first** — a service worker precaches the app shell so it runs without a
   network. All assets are bundled or generated locally.
 - **Accessible & responsive** — keyboard-operable controls, ARIA roles/labels, visible

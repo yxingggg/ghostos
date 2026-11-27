@@ -190,15 +190,21 @@ can play my own audio files with retro flair.
 
 ### Requirement 10: Optional AI assistant
 
-**User Story:** As a user, I want an optional AI assistant, so that I can get help, while
-the rest of GhostOS still works fully offline.
+**User Story:** As a user, I want a helpful assistant that works offline by default and can
+optionally use a real AI model, while the rest of GhostOS still works fully offline.
 
 #### Acceptance Criteria
 
-1. The AI assistant SHALL be disabled by default and SHALL require the user to opt in and supply configuration (e.g., an endpoint/key) before it contacts any network.
-2. WHILE the assistant is disabled or offline THE system SHALL keep all other apps fully functional.
-3. IF an assistant request fails THEN the assistant SHALL show a graceful error and SHALL NOT break the desktop.
-4. The system SHALL NOT send user data to any external service unless the assistant is explicitly enabled by the user.
+1. The assistant SHALL provide an offline, rule-based help mode by default that requires no API key or internet, answering questions about GhostOS features, apps, keyboard shortcuts, filesystem operations, terminal commands, settings, and workspace restoration from local documentation.
+2. The offline help mode SHALL be clearly labeled as an offline help assistant (not a generative AI model), SHALL offer clickable suggested questions, and SHALL give a helpful fallback when a question is not recognized.
+3. The online AI mode SHALL be disabled by default and SHALL require the user to opt in and supply an endpoint and (optionally) an API key before it contacts any network.
+4. The online AI mode SHALL support provider presets for OpenAI, Google Gemini, and custom OpenAI-compatible endpoints, with configurable endpoint, model, and API key, and SHALL format requests/parse responses correctly for each provider's API shape.
+5. The assistant SHALL provide a Test Connection action with clear success and error messages, and SHALL offer direct navigation to its Settings section.
+6. IF an online request fails (invalid credentials, unavailable model, CORS, rate limit, network failure, or timeout) THEN the assistant SHALL show a specific, graceful error and SHALL NOT break the desktop.
+7. The system SHALL keep the API key in session memory only and SHALL exclude it from persistence, workspace exports, logs, error messages, and sample configurations.
+8. WHEN the user switches provider or endpoint THEN the system SHALL clear the stored API key.
+9. The system SHALL NOT send an API key to a non-HTTPS endpoint, and SHALL send only the user's conversation — never virtual files or personal notes — to the provider.
+10. WHILE online AI is disabled or offline THE system SHALL keep all other apps (including the offline help mode) fully functional.
 
 ### Requirement 11: Visual theme and CRT effects
 
