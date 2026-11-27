@@ -38,6 +38,32 @@ let degraded = false;
 let noticeShown = false;
 let onDegrade: ((reason: string) => void) | null = null;
 
+// Once a workspace restore succeeds, writes are FROZEN until the page reloads.
+// This prevents stale in-flight writes — a pending debounced autosave (editor,
+// notes, wm-layout) or any live store action in this tab — from clobbering the
+// freshly-restored database in the window between "restore complete" and the
+// user clicking "Enter restored workspace" (which reloads). The flag is
+// per-realm; see freezeWrites() for the cross-tab limitation.
+let frozen = false;
+
+/**
+ * Permanently stop this tab from writing to persistence until reload. Called by
+ * the restore flow AFTER importAll succeeds, so no stale write can overwrite the
+ * restored data. Frozen writes become no-ops that report "not durable" (false),
+ * so callers surface an honest status rather than a false success.
+ *
+ * Limitation: the flag lives in this JS realm only. It cannot stop a SECOND open
+ * GhostOS tab, whose stores share the same IndexedDB. Restoring while other tabs
+ * are open is therefore not guaranteed safe across tabs — the UI warns about this.
+ */
+export function freezeWrites(): void {
+  frozen = true;
+}
+
+export function isFrozen(): boolean {
+  return frozen;
+}
+
 /** Register a callback invoked once if persistence degrades to memory-only. */
 export function setPersistenceNoticeHandler(cb: (reason: string) => void): void {
   onDegrade = cb;
@@ -92,6 +118,9 @@ export async function loadSlice<T>(name: SliceName): Promise<T | undefined> {
  * callers can surface an honest "not durably saved" state instead of lying.
  */
 export async function saveSlice<T>(name: SliceName, value: T): Promise<boolean> {
+  // After a restore, refuse writes so a stale autosave can't clobber the
+  // restored workspace before reload. Report not-durable (false).
+  if (frozen) return false;
   memory.kv.set(name, value);
   try {
     const db = await getDB();
@@ -119,6 +148,7 @@ export async function getContent(
 
 /** Store content. Returns true if durably written to IndexedDB, false if only in memory. */
 export async function putContent(id: string, value: StoredContent): Promise<boolean> {
+  if (frozen) return false; // frozen after restore — see freezeWrites()
   memory.content.set(id, value);
   try {
     const db = await getDB();
@@ -158,6 +188,7 @@ export async function blobToArrayBuffer(blob: Blob): Promise<ArrayBuffer> {
 }
 
 export async function deleteContent(id: string): Promise<void> {
+  if (frozen) return; // frozen after restore — see freezeWrites()
   memory.content.delete(id);
   try {
     const db = await getDB();
@@ -214,21 +245,32 @@ export async function exportAll(): Promise<ExportedBackup> {
  * (This is not a single atomic transaction across both object stores; callers
  * should treat restore as "best-effort replace then reload", which is why the
  * UI reloads from the resulting store rather than hot-swapping live state.)
+ *
+ * Returns `true` only if EVERY write was durable. If any write reports
+ * not-durable (storage unavailable/degraded mid-import), returns `false` so the
+ * caller never shows a false "restored" success. A `false` result means the
+ * restore is partial and the user must be told, not reassured.
  */
 export async function importAll(data: {
   kv: Record<string, unknown>;
   content: Record<string, string>;
-}): Promise<void> {
+}): Promise<boolean> {
+  let durable = true;
   for (const [k, v] of Object.entries(data.content)) {
-    if (typeof v === 'string') await putContent(k, deserializeContent(v));
+    if (typeof v === 'string') {
+      const ok = await putContent(k, deserializeContent(v));
+      durable = durable && ok;
+    }
   }
   const known: readonly SliceName[] = ['settings', 'notes', 'vfs', 'music', 'wm-layout'];
   for (const [k, v] of Object.entries(data.kv)) {
     // Only import recognized slice names; ignore unknown keys from a tampered file.
     if ((known as readonly string[]).includes(k)) {
-      await saveSlice(k as SliceName, v);
+      const ok = await saveSlice(k as SliceName, v);
+      durable = durable && ok;
     }
   }
+  return durable;
 }
 
 // Classify binary by structural tag rather than `instanceof`, because a storage
@@ -300,6 +342,7 @@ export async function __resetPersistenceForTests(): Promise<void> {
   degraded = false;
   noticeShown = false;
   onDegrade = null;
+  frozen = false;
   if (typeof indexedDB !== 'undefined') {
     await new Promise<void>((resolve) => {
       const req = indexedDB.deleteDatabase(DB_NAME);

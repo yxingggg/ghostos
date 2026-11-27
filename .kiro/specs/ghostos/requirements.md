@@ -318,9 +318,16 @@ so that I can move and resurrect my entire workspace with confidence and no surp
    explicit success feedback and an explicit "Enter restored workspace" control (a clean
    reload) rather than reloading automatically.
 7. Restore SHALL write content blobs before the node index so the filesystem never
-   references missing content; IF a storage write fails THEN the system SHALL report the
-   failure explicitly (restore is best-effort replace-then-reload, not a single atomic
-   transaction across stores).
+   references missing content; IF any write is not durable (storage degraded mid-import)
+   THEN the system SHALL report the failure explicitly and SHALL NOT show a success state
+   (no false success). Restore is best-effort replace-then-reload, not a single atomic
+   transaction across stores.
+7a. WHEN a restore succeeds THEN the system SHALL freeze all further persistence writes in
+    this tab until reload, so that a pending debounced autosave (editor, notes, window
+    layout) or any later interaction CANNOT overwrite the restored workspace before the
+    user enters it. The frozen-write guard is per-tab (per JS realm); the system SHALL warn
+    the user to close other GhostOS tabs before restoring, because a second tab shares the
+    same IndexedDB and is not covered by the guard (documented limitation).
 8. The taskbar SHALL display a connectivity indicator that is responsive and honest: it
    SHALL distinguish network-offline (reassuring, since local features keep working) from
    degraded storage (a genuine "changes will not be saved" warning), SHALL NOT imply the

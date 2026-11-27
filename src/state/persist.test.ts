@@ -3,8 +3,10 @@ import {
   __resetPersistenceForTests,
   blobToArrayBuffer,
   exportAll,
+  freezeWrites,
   getContent,
   importAll,
+  isFrozen,
   loadSlice,
   putContent,
   saveSlice,
@@ -119,5 +121,39 @@ describe('persistence (fake-indexeddb)', () => {
     await importAll(legacy);
     expect(await loadSlice('settings')).toEqual({ crt: false });
     expect(await getContent('c')).toBe('hi');
+  });
+
+  it('importAll reports success (true) when all writes are durable', async () => {
+    const ok = await importAll({ kv: { settings: { crt: true } }, content: { c: 'str:x' } });
+    expect(ok).toBe(true);
+  });
+
+  describe('write freeze after restore (stale-write safety)', () => {
+    it('freezeWrites stops saveSlice/putContent from mutating storage', async () => {
+      await saveSlice('settings', { wallpaper: 'restored' });
+      await putContent('blobR', 'restored-bytes');
+
+      freezeWrites();
+      expect(isFrozen()).toBe(true);
+
+      // A stale autosave attempt after restore must NOT overwrite restored data
+      // and must report not-durable (false).
+      const sliceOk = await saveSlice('settings', { wallpaper: 'STALE' });
+      const contentOk = await putContent('blobR', 'STALE-bytes');
+      expect(sliceOk).toBe(false);
+      expect(contentOk).toBe(false);
+
+      // Storage still holds the restored values, untouched by the frozen writes.
+      expect(await loadSlice('settings')).toEqual({ wallpaper: 'restored' });
+      expect(await getContent('blobR')).toBe('restored-bytes');
+    });
+
+    it('a reset clears the freeze so later sessions can write again', async () => {
+      freezeWrites();
+      expect(isFrozen()).toBe(true);
+      await __resetPersistenceForTests();
+      expect(isFrozen()).toBe(false);
+      expect(await saveSlice('settings', { crt: true })).toBe(true);
+    });
   });
 });

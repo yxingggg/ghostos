@@ -6,6 +6,7 @@ import { registerBuiltinApps } from '../index';
 import {
   __resetPersistenceForTests,
   exportAll,
+  freezeWrites,
   loadSlice,
   saveSlice,
   putContent,
@@ -113,6 +114,27 @@ describe('SettingsApp — Ghost Memory resurrection flow', () => {
     // The backup was actually applied to storage (round-trip).
     expect(await loadSlice('settings')).toEqual({ crt: false, wallpaper: 'void' });
     expect(await getContent('blobX')).toBe('restored-content');
+  });
+
+  it('no false success: a non-durable restore shows failure, not the Enter button', async () => {
+    await saveSlice('settings', { wallpaper: 'castle' });
+    // Freeze writes to simulate storage that cannot durably persist the import,
+    // so importAll reports not-durable (false) for every write.
+    freezeWrites();
+    const user = userEvent.setup();
+    const { container } = render(<SettingsApp windowId="set" />);
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+
+    await user.upload(input, backupFile(validBackupObject()));
+    await screen.findByRole('dialog', { name: /confirm workspace restore/i });
+    await user.click(screen.getByRole('button', { name: /replace & restore/i }));
+
+    // The success control must NOT appear — the restore was not durable.
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /enter restored workspace/i })).toBeNull();
+    });
+    // Dialog stays in its confirm state (still offers Cancel), not success.
+    expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
   });
 
   it('exportAll carries provenance meta and remains importable', async () => {

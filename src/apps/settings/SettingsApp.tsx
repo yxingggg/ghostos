@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { AppComponentProps } from '../registry';
 import { useSettings, WALLPAPERS } from '../../state/settingsStore';
 import { WallpaperThumb } from '../../ui/Wallpaper';
-import { exportAll, importAll } from '../../state/persist';
+import { exportAll, importAll, freezeWrites } from '../../state/persist';
 import {
   validateBackup,
   summarizeBackup,
@@ -118,20 +118,36 @@ export function SettingsApp({ props }: AppComponentProps) {
 
   /** Perform the confirmed restore. Only reached after validation + preview. */
   async function confirmRestore() {
-    if (!preview || restoreBusy) return;
+    if (!preview || restoreBusy || restored) return;
     setRestoreBusy(true);
+    let durable = false;
     try {
       // Write content blobs first, then the kv slices (so the vfs node index is
       // only replaced once its referenced blobs exist). importAll ignores
-      // unknown keys and already excludes the session-only API key.
-      await importAll({ kv: preview.backup.kv, content: preview.backup.content });
-      setRestored(true);
+      // unknown keys and already excludes the session-only API key. It returns
+      // false if any write was not durable (storage degraded mid-import).
+      durable = await importAll({ kv: preview.backup.kv, content: preview.backup.content });
     } catch {
-      push('Restore failed while writing to storage. Your previous data may be partially replaced; re-import to retry.', 'error');
       setRestoreBusy(false);
+      push(
+        'Restore failed while writing to storage. Your previous data may be partially replaced — re-import to retry; do not rely on this workspace.',
+        'error',
+      );
       return;
     }
     setRestoreBusy(false);
+    if (!durable) {
+      // Partial/failed restore: NEVER show success. Writes may be inconsistent.
+      push(
+        'Restore did not complete — storage is unavailable, so the backup was not durably written. Your workspace was not safely replaced.',
+        'error',
+      );
+      return;
+    }
+    // Success: freeze all further writes in this tab so a stale autosave or any
+    // interaction before reload cannot overwrite the restored data.
+    freezeWrites();
+    setRestored(true);
   }
 
   function cancelRestore() {
@@ -447,13 +463,18 @@ function RestoreDialog({
 
           {restored ? (
             <p className="mb-4 text-sm text-spectral-400" role="status">
-              Your workspace has been restored to Ghost Memory. Enter it to re-summon your desktop.
+              Your workspace has been restored to Ghost Memory. Saving is paused to protect it —
+              enter the restored workspace to reload and re-summon your desktop.
             </p>
           ) : (
-            <p className="mb-4 text-sm text-blood-400">
+            <p className="mb-2 text-sm text-blood-400">
               This <strong>replaces</strong> your current GhostOS workspace (files, notes, music,
               settings, and window layout) in this browser. This cannot be undone — export your
               current workspace first if you want to keep it.
+            </p>
+            <p className="mb-4 text-xs text-bone-500">
+              For a clean restore, close other GhostOS tabs first: this tab stops saving once the
+              restore succeeds, but another open tab could still write over the restored data.
             </p>
           )}
 
