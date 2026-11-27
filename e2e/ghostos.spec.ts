@@ -56,16 +56,16 @@ test('GraveNotes new document saved via Save As appears in Tomb Explorer', async
   const dialog = page.getByRole('dialog', { name: /save as/i });
   await dialog.getByLabel('File name').fill('hello');
   await dialog.getByRole('button', { name: 'Save' }).click();
-  await expect(notes.getByText('hello.txt')).toBeVisible();
+  // The editor binds to the saved file; its textarea is now labelled by the name.
+  await expect(notes.getByLabel(/contents of hello.txt/i)).toBeVisible();
 
-  // Confirm it shows up in Tomb Explorer.
+  // Confirm it shows up in Tomb Explorer under home/documents (the Save As
+  // default destination for the seeded filesystem).
   await launch(page, 'Tomb Explorer');
   const explorer = page.getByRole('dialog', { name: /tomb explorer/i });
-  // Navigate into Documents (the Save As default destination).
-  await explorer.getByRole('button', { name: 'home' }).click();
-  // hello.txt lives in documents; open that folder then check.
-  // (Depending on layout, it is reachable from the breadcrumb/grid.)
-  await expect(page.getByText('hello.txt')).toBeVisible({ timeout: 10_000 });
+  await explorer.getByRole('button', { name: 'home', exact: true }).first().dblclick();
+  await explorer.getByRole('button', { name: 'documents', exact: true }).first().dblclick();
+  await expect(explorer.getByRole('button', { name: 'hello.txt' })).toBeVisible({ timeout: 10_000 });
 });
 
 test('resizing Tomb Explorer keeps toolbar controls reachable (no clipping)', async ({ page }) => {
