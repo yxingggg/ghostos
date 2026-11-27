@@ -2,7 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import type { AppComponentProps } from '../registry';
 import { useSettings, WALLPAPERS } from '../../state/settingsStore';
 import { WallpaperThumb } from '../../ui/Wallpaper';
-import { exportAll, importAll } from '../../state/persist';
+import { exportAll, importAll, freezeWrites } from '../../state/persist';
+import {
+  validateBackup,
+  summarizeBackup,
+  type BackupFile,
+  type BackupSummary,
+} from '../../core/persistence/backup';
+import { GhostLogo, GhostMascot } from '../../assets/brand';
+import { APP_NAME, APP_VERSION } from '../../version';
 import { useToasts } from '../../state/toastStore';
 import {
   PROVIDER_PRESETS,
@@ -23,14 +31,28 @@ export function SettingsApp({ props }: AppComponentProps) {
   const push = useToasts((s) => s.push);
   const fileRef = useRef<HTMLInputElement>(null);
   const assistantSectionRef = useRef<HTMLDivElement>(null);
+  const ghostMemorySectionRef = useRef<HTMLDivElement>(null);
   const [testState, setTestState] = useState<
     { status: 'idle' | 'testing' } | { status: 'ok' | 'error'; message: string }
   >({ status: 'idle' });
 
-  // When launched from Spirit Assistant with focus:'assistant', scroll there.
+  // Ghost Memory resurrection flow state.
+  const [lastExport, setLastExport] = useState<BackupSummary | null>(null);
+  const [preview, setPreview] = useState<{ backup: BackupFile; summary: BackupSummary } | null>(
+    null,
+  );
+  const [restoreBusy, setRestoreBusy] = useState(false);
+  const [restored, setRestored] = useState(false);
+
+  // Deep-link scroll/actions when launched with a `focus` prop.
   useEffect(() => {
     if (props?.focus === 'assistant') {
       assistantSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (props?.focus === 'restore') {
+      // From the welcome "Restore a backup" shortcut: reveal Ghost Memory and
+      // open the file picker so the user can pick a backup immediately.
+      ghostMemorySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      fileRef.current?.click();
     }
   }, [props]);
 
@@ -66,18 +88,72 @@ export function SettingsApp({ props }: AppComponentProps) {
     a.download = `ghostos-backup-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    push('Workspace exported.');
+    // Summarize the backup we just produced (validate to reuse the same shape).
+    const checked = validateBackup(data);
+    if (checked.ok) setLastExport(summarizeBackup(checked.backup));
+    push('Ghost Memory exported.');
   }
 
-  async function doImport(file: File) {
+  /**
+   * Stage a backup for restore. We parse and VALIDATE the file but perform NO
+   * storage mutation — a malformed backup is rejected here, before anything is
+   * written, and the user sees a preview + explicit replacement confirmation.
+   */
+  async function stageImport(file: File) {
+    let parsed: unknown;
     try {
-      const text = await file.text();
-      const data = JSON.parse(text) as { kv: Record<string, unknown>; content: Record<string, string> };
-      await importAll(data);
-      push('Workspace imported. Reload to see all changes.');
+      parsed = JSON.parse(await file.text());
     } catch {
-      push('Import failed: invalid backup file.', 'error');
+      push('Import failed: that file is not valid JSON.', 'error');
+      return;
     }
+    const checked = validateBackup(parsed);
+    if (!checked.ok) {
+      push(`Import failed: ${checked.error}`, 'error');
+      return;
+    }
+    setRestored(false);
+    setPreview({ backup: checked.backup, summary: summarizeBackup(checked.backup) });
+  }
+
+  /** Perform the confirmed restore. Only reached after validation + preview. */
+  async function confirmRestore() {
+    if (!preview || restoreBusy || restored) return;
+    setRestoreBusy(true);
+    let durable = false;
+    try {
+      // Write content blobs first, then the kv slices (so the vfs node index is
+      // only replaced once its referenced blobs exist). importAll ignores
+      // unknown keys and already excludes the session-only API key. It returns
+      // false if any write was not durable (storage degraded mid-import).
+      durable = await importAll({ kv: preview.backup.kv, content: preview.backup.content });
+    } catch {
+      setRestoreBusy(false);
+      push(
+        'Restore failed mid-write. Your workspace may be PARTIALLY replaced and inconsistent — do not rely on it. Re-import the backup to retry, and in future export your current workspace before restoring so you can recover it.',
+        'error',
+      );
+      return;
+    }
+    setRestoreBusy(false);
+    if (!durable) {
+      // Partial/failed restore: NEVER show success. Writes may be inconsistent.
+      push(
+        'Restore did not complete — storage is unavailable, so the backup was not durably written and your workspace may be partially replaced. Nothing was safely restored. Export your current workspace before trying again.',
+        'error',
+      );
+      return;
+    }
+    // Success: freeze all further writes in this tab so a stale autosave or any
+    // interaction before reload cannot overwrite the restored data.
+    freezeWrites();
+    setRestored(true);
+  }
+
+  function cancelRestore() {
+    setPreview(null);
+    setRestoreBusy(false);
+    setRestored(false);
   }
 
   return (
@@ -122,26 +198,49 @@ export function SettingsApp({ props }: AppComponentProps) {
         <p className="text-sm text-bone-500">Sound is off by default and synthesized locally (no files, no network).</p>
       </Section>
 
-      <Section title="Ghost Memory (workspace data)">
-        <p className="text-sm text-bone-500">
-          Ghost Memory keeps your files, notes, music, and open windows in this browser and
-          restores them automatically on each visit. Back it up or move it between browsers here.
-        </p>
-        <div className="flex gap-2">
-          <ActionButton onClick={() => void doExport()}>Export Ghost Memory</ActionButton>
-          <ActionButton onClick={() => fileRef.current?.click()}>Import Ghost Memory</ActionButton>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="application/json"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void doImport(f);
-            }}
-          />
-        </div>
-      </Section>
+      <div ref={ghostMemorySectionRef}>
+        <Section title="Ghost Memory (workspace resurrection)">
+          <p className="text-sm text-bone-500">
+            Ghost Memory keeps your files, notes, music, and open windows in this browser and
+            restores them automatically on each visit — no account, no server. Export a portable
+            backup to move your whole workspace between browsers or machines, or resurrect one here.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <ActionButton onClick={() => void doExport()}>Export Ghost Memory</ActionButton>
+            <ActionButton onClick={() => fileRef.current?.click()}>Restore from backup…</ActionButton>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="application/json"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                // Reset the input so re-selecting the same file re-triggers change.
+                e.target.value = '';
+                if (f) void stageImport(f);
+              }}
+            />
+          </div>
+          {lastExport && (
+            <p className="text-xs text-spectral-400" role="status">
+              Last export: {lastExport.files} files, {lastExport.folders} folders,{' '}
+              {lastExport.notes} notes, {lastExport.tracks} tracks · wallpaper{' '}
+              {lastExport.wallpaper ?? 'default'}.
+            </p>
+          )}
+        </Section>
+      </div>
+
+      {preview && (
+        <RestoreDialog
+          summary={preview.summary}
+          busy={restoreBusy}
+          restored={restored}
+          onConfirm={() => void confirmRestore()}
+          onCancel={cancelRestore}
+          onEnter={() => window.location.reload()}
+        />
+      )}
 
       <div ref={assistantSectionRef} id="assistant-settings">
         <Section title="AI Assistant">
@@ -209,6 +308,25 @@ export function SettingsApp({ props }: AppComponentProps) {
           )}
         </Section>
       </div>
+
+      <Section title="About GhostOS">
+        <div className="flex items-center gap-3">
+          <GhostMascot className="h-12 w-12" float={false} />
+          <div>
+            <GhostLogo className="text-xl" showMascot={false} />
+            <p className="font-pixel text-sm text-bone-400">a haunted desktop, reborn</p>
+          </div>
+        </div>
+        <p className="text-sm text-bone-500">
+          {APP_NAME} v{APP_VERSION} — a fully client-side, offline-first retro-gothic desktop.
+          Your workspace lives in this browser via Ghost Memory; nothing is sent to a server
+          except the optional, opt-in online AI you configure yourself.
+        </p>
+        <p className="text-xs text-bone-500">
+          Built for Kiroween 2026 (Resurrection). MIT licensed. Icons, wallpapers, mascot, and
+          demo music are original assets.
+        </p>
+      </Section>
     </div>
   );
 }
@@ -284,5 +402,105 @@ function ActionButton({ children, onClick }: { children: React.ReactNode; onClic
     >
       {children}
     </button>
+  );
+}
+
+/**
+ * The workspace "resurrection" dialog: shows a preview of the backup's
+ * contents, requires an explicit replacement confirmation, reflects a busy
+ * state during restore, and ends with an explicit "Enter restored workspace"
+ * button (a clean reload) rather than an automatic reload — so the user stays
+ * in control and the app re-hydrates from the now-consistent store.
+ */
+function RestoreDialog({
+  summary,
+  busy,
+  restored,
+  onConfirm,
+  onCancel,
+  onEnter,
+}: {
+  summary: BackupSummary;
+  busy: boolean;
+  restored: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+  onEnter: () => void;
+}) {
+  return (
+    <div className="absolute inset-0 z-[600] grid place-items-center bg-black/60 p-4 animate-fadein">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={restored ? 'Workspace resurrected' : 'Confirm workspace restore'}
+        className="w-full max-w-md overflow-hidden rounded-xl border border-amethyst-600/70 bg-crypt-800 shadow-window"
+      >
+        <div className="flex items-center gap-3 border-b border-amethyst-600/50 bg-gradient-to-r from-amethyst-600/40 via-crypt-700 to-crypt-800 p-4">
+          <GhostMascot className="h-12 w-12" float={false} />
+          <div>
+            <h2 className="font-gothic text-xl text-spectral-500">
+              {restored ? 'Workspace resurrected' : 'Resurrect this workspace?'}
+            </h2>
+            <p className="font-pixel text-sm text-bone-400">
+              {summary.createdAt
+                ? `Backup from ${new Date(summary.createdAt).toLocaleString()}`
+                : 'Backup (older format — no timestamp)'}
+              {summary.appVersion ? ` · GhostOS v${summary.appVersion}` : ''}
+            </p>
+          </div>
+        </div>
+
+        <div className="p-4 font-pixel text-base text-bone-200">
+          <p className="mb-2 text-bone-300">This backup contains:</p>
+          <ul className="mb-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-bone-200">
+            <li>📄 {summary.files} files</li>
+            <li>📁 {summary.folders} folders</li>
+            <li>📝 {summary.notes} notes</li>
+            <li>🎵 {summary.tracks} tracks</li>
+            <li>🖼 wallpaper: {summary.wallpaper ?? 'default'}</li>
+            <li>💾 {summary.contentItems} stored items</li>
+          </ul>
+
+          {restored ? (
+            <p className="mb-4 text-sm text-spectral-400" role="status">
+              Your workspace has been restored to Ghost Memory. Saving is paused to protect it —
+              enter the restored workspace to reload and re-summon your desktop.
+            </p>
+          ) : (
+            <>
+              <p className="mb-2 text-sm text-blood-400">
+                This <strong>replaces</strong> your current GhostOS workspace (files, notes, music,
+                settings, and window layout) in this browser. It can only be undone if you exported
+                your current workspace first — do that before restoring if you want to keep it.
+              </p>
+              <p className="mb-4 text-xs text-bone-500">
+                For a clean restore, close other GhostOS tabs first: this tab stops saving once the
+                restore succeeds, but another open tab could still write over the restored data.
+              </p>
+            </>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2">
+            {restored ? (
+              <ActionButton onClick={onEnter}>Enter restored workspace</ActionButton>
+            ) : (
+              <>
+                <ActionButton onClick={onConfirm}>
+                  {busy ? 'Resurrecting…' : 'Replace & restore'}
+                </ActionButton>
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  disabled={busy}
+                  className="rounded-sm border border-crypt-500 bg-crypt-700 px-3 py-1 font-pixel text-base text-bone-300 hover:bg-crypt-600 disabled:opacity-40"
+                >
+                  Cancel
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

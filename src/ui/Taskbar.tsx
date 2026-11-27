@@ -3,6 +3,7 @@ import { getApp } from '../apps/registry';
 import { AppIconTile } from './AppIconTile';
 import { GhostMascot } from '../assets/brand';
 import { Clock } from './Clock';
+import { ConnectivityIndicator } from './ConnectivityIndicator';
 import { useSettings, prefersReducedMotion } from '../state/settingsStore';
 import { playSfx } from '../sound/sfx';
 
@@ -73,6 +74,7 @@ export function Taskbar({ onToggleStart, startOpen }: Props) {
         })}
       </div>
 
+      <ConnectivityIndicator />
       <Clock />
     </div>
   );
