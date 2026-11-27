@@ -17,17 +17,22 @@ in your browser with no backend, no accounts, and no external APIs for core feat
 
 ## Project status
 
-GhostOS is **feature-complete in code**. Because it was authored in an offline environment
-without npm-registry access, the test suite and production build had **not been executed**
-at authoring time. The distinction matters, so this README separates the two:
+GhostOS is **feature-complete and verified by CI**. The GitHub Actions
+[CI workflow](.github/workflows/ci.yml) runs green on `main`:
 
-- **Implemented** — written to the documented contracts and reviewed statically.
-- **Verified** — confirmed by actually running `typecheck` / `lint` / `test` / `build`,
-  either locally or via the GitHub Actions CI workflow.
+| Check | Status |
+|-------|--------|
+| Install dependencies | ✅ |
+| Type-check (`tsc`, strict) | ✅ |
+| Lint (ESLint, `.ts`/`.tsx`) | ✅ |
+| Test (Vitest) | ✅ **88 tests, 10 files** (incl. WM & VFS property-based) |
+| Production build (Vite) | ✅ bundle + service worker emitted |
 
-Everything below is **implemented**. It becomes **verified** once CI is green (see the
-[CI workflow](.github/workflows/ci.yml)). Do not treat the checks as passing until the
-Actions run reports success. See [Limitations](#limitations-and-remaining-verification).
+The one item **not yet verified** is the *live* GitHub Pages deployment: the deploy
+workflow's quality gate, build, and artifact upload pass, but the final publish step is
+blocked until the repository owner enables Pages (**Settings → Pages → Source: "GitHub
+Actions"**). Everything else is confirmed by execution, not just written. See
+[Limitations](#limitations-and-remaining-verification).
 
 ---
 
@@ -155,12 +160,14 @@ proprietary branding, logos, startup sounds, or wallpapers.
 
 Honest status of what has and hasn't been confirmed:
 
-- **Not yet executed at authoring time.** `npm install`, `npm run typecheck`, `npm run
-  lint`, `npm test`, and `npm run build` were not run in the authoring environment (no npm
-  registry access there). Run them locally or rely on the CI workflow to verify. Until an
-  Actions run is green, treat the suite and build as *unverified*.
+- **Verified by CI, not in the authoring sandbox.** The authoring environment had no npm
+  registry access, so the suite/build were first executed by GitHub Actions on push. CI
+  is green (install, type-check, lint, 88 tests, production build). The **live Pages
+  deployment is not yet verified** — it is blocked on the owner enabling GitHub Pages
+  (Settings → Pages → Source: "GitHub Actions"), after which the deploy workflow publishes
+  to https://yxingggg.github.io/ghostos/.
 - **No `package-lock.json` committed.** Generated on first `npm install`; commit it to pin
-  versions and enable CI caching.
+  versions and enable CI caching. CI currently uses `npm install` (no lockfile present).
 - **Web fonts are not bundled.** To stay fully offline, GhostOS uses system-font fallbacks
   for the pixel/gothic look rather than loading fonts from a CDN. For the authentic bitmap
   typeface, drop self-hosted `.woff2` files into `src/assets/fonts/` and uncomment the

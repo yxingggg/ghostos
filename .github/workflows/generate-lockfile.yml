@@ -1,0 +1,33 @@
+name: Generate package-lock.json
+
+# One-shot helper: generates a real package-lock.json in a network-enabled
+# runner and commits it back to the repository. Run it manually from the
+# Actions tab (Run workflow). Safe to delete once a lockfile is committed.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Resolve and write lockfile only
+        run: npm install --package-lock-only
+      - name: Commit lockfile if changed
+        run: |
+          if [ -n "$(git status --porcelain package-lock.json)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            git commit -m "chore: add generated package-lock.json"
+            git push
+          else
+            echo "package-lock.json already up to date."
+          fi
