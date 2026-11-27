@@ -10,7 +10,7 @@ module.exports = {
   parserOptions: { ecmaVersion: 2021, sourceType: 'module' },
   plugins: ['@typescript-eslint', 'react-hooks', 'react-refresh'],
   settings: { react: { version: '18.3' } },
-  ignorePatterns: ['dist', 'dev-dist', 'coverage', 'node_modules', '*.cjs'],
+  ignorePatterns: ['dist', 'dev-dist', 'coverage', 'node_modules', '*.cjs', 'e2e', 'playwright.config.ts'],
   rules: {
     'react-hooks/rules-of-hooks': 'error',
     'react-hooks/exhaustive-deps': 'warn',

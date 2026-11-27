@@ -20,10 +20,15 @@ export interface Track {
   vfsFileId?: string;
 }
 
+export type RepeatMode = 'off' | 'all' | 'one';
+
 interface MusicStore {
   tracks: Track[];
   currentId: string | null;
   playing: boolean;
+  volume: number; // 0..1
+  muted: boolean;
+  repeat: RepeatMode;
   hydrated: boolean;
   hydrate: () => Promise<void>;
   addTrack: (name: string, blob: Blob) => Promise<string>;
@@ -34,10 +39,15 @@ interface MusicStore {
     content: ArrayBuffer,
     mime: string,
   ) => Promise<string>;
+  /** Add a demo track by id (from core demoTracks), reusing if already added. */
+  addDemoTrack: (id: string, title: string, wav: ArrayBuffer) => Promise<string>;
   removeTrack: (id: string) => Promise<void>;
   getTrackUrl: (id: string) => Promise<string | null>;
   select: (id: string | null) => void;
   setPlaying: (playing: boolean) => void;
+  setVolume: (v: number) => void;
+  toggleMute: () => void;
+  cycleRepeat: () => void;
   next: () => void;
   prev: () => void;
 }
@@ -50,6 +60,9 @@ export const useMusic = create<MusicStore>((set, get) => ({
   tracks: [],
   currentId: null,
   playing: false,
+  volume: 0.8,
+  muted: false,
+  repeat: 'off',
   hydrated: false,
   hydrate: async () => {
     const stored = await loadSlice<Track[]>('music');
@@ -92,6 +105,28 @@ export const useMusic = create<MusicStore>((set, get) => ({
     persist(tracks);
     return track.id;
   },
+  addDemoTrack: async (id, title, wav) => {
+    // Dedup demo tracks by their stable demo id (stored in vfsFileId).
+    const existing = get().tracks.find((t) => t.vfsFileId === `demo:${id}`);
+    if (existing) {
+      set({ currentId: existing.id });
+      return existing.id;
+    }
+    const contentId = createId('audio');
+    await putContent(contentId, wav);
+    const track: Track = {
+      id: createId('track'),
+      name: title,
+      contentId,
+      mime: 'audio/wav',
+      addedAt: Date.now(),
+      vfsFileId: `demo:${id}`,
+    };
+    const tracks = [...get().tracks, track];
+    set({ tracks, currentId: track.id });
+    persist(tracks);
+    return track.id;
+  },
   removeTrack: async (id) => {
     const track = get().tracks.find((t) => t.id === id);
     if (track) await deleteContent(track.contentId);
@@ -112,6 +147,10 @@ export const useMusic = create<MusicStore>((set, get) => ({
   },
   select: (id) => set({ currentId: id }),
   setPlaying: (playing) => set({ playing }),
+  setVolume: (v) => set({ volume: Math.max(0, Math.min(1, v)), muted: v === 0 ? get().muted : false }),
+  toggleMute: () => set({ muted: !get().muted }),
+  cycleRepeat: () =>
+    set({ repeat: get().repeat === 'off' ? 'all' : get().repeat === 'all' ? 'one' : 'off' }),
   next: () => {
     const { tracks, currentId } = get();
     if (tracks.length === 0) return;

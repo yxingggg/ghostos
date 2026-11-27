@@ -202,11 +202,14 @@ can play my own audio files with retro flair.
 
 #### Acceptance Criteria
 
-1. WHEN a user adds a local audio file THEN the player SHALL store it in the VFS/IndexedDB and SHALL list it in a playlist.
-2. The player SHALL support play, pause, stop, next, previous, and seek.
-3. WHILE audio is playing THE player SHALL render a visualization driven by the Web Audio API analyser.
-4. IF the Web Audio API is unavailable THEN the player SHALL still play audio and SHALL hide the visualization without error.
-5. The player SHALL honor the global mute setting.
+1. The player SHALL let a user add local audio via a prominent Import button and via drag-and-drop, SHALL store it in IndexedDB, and SHALL list it in a playlist; it SHALL also play audio files opened from Tomb Explorer.
+2. The player SHALL support play, pause, stop, next, previous, seek, volume, mute, and a repeat mode (off/all/one), with functional controls.
+3. The player SHALL display the current track's filename, elapsed time, and duration.
+4. WHEN there are no tracks THEN the player SHALL show a helpful empty state explaining how to add tracks.
+5. WHILE audio is playing THE player SHALL render a visualization driven by the Web Audio API analyser; IF Web Audio is unavailable THE player SHALL still play audio and render a flat baseline without error.
+6. The player SHALL honor the global sound/mute setting and SHALL revoke unused object URLs when the track changes or the window closes.
+7. IF a file is unsupported or corrupted THEN the player SHALL show an informative message; IF autoplay is blocked THEN it SHALL fall back to paused and prompt the user to press Play.
+8. The player SHALL offer at least three original, locally-synthesized demo tracks via an explicit "Play Demo Track" action (no autoplay, no external/streamed/copyrighted audio), bundled to work offline.
 
 ### Requirement 10: Optional AI assistant
 

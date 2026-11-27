@@ -25,7 +25,7 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: |
-          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          npm ci || npm install
       - name: Type-check
         run: npm run typecheck
       - name: Lint
@@ -43,7 +43,7 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: |
-          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          npm ci || npm install
       - name: Build
         # GHOSTOS_BASE matches the GitHub Pages sub-path for yxingggg/ghostos
         # (https://yxingggg.github.io/ghostos/). Change it if the repo is renamed.

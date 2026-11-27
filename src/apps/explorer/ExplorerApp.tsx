@@ -10,6 +10,7 @@ import { FileIcon, FolderIcon } from '../../assets/icons';
 import { ContextMenu, type MenuItem } from './ContextMenu';
 import { nodeProperties, PropertiesDialog } from './PropertiesDialog';
 import { Overlay } from './Overlay';
+import { Toolbar } from '../../ui/Toolbar';
 
 export function ExplorerApp(_props: AppComponentProps) {
   const rootId = useVfs((s) => s.rootId);
@@ -114,49 +115,61 @@ export function ExplorerApp(_props: AppComponentProps) {
       className="flex h-full flex-col bg-crypt-800"
       onClick={() => setMenu(null)}
     >
-      {/* Toolbar */}
-      <div className="flex items-center gap-1 border-b border-crypt-500 p-1.5">
-        <ToolButton onClick={() => createFolder(cwd, nextName(items.map((i) => i.name), 'New Folder'))}>
-          New Folder
-        </ToolButton>
-        <ToolButton
-          onClick={() => void createTextFile(cwd, nextName(items.map((i) => i.name), 'untitled.txt'), '')}
-        >
-          New File
-        </ToolButton>
-        <ToolButton
-          disabled={!selected}
-          onClick={() => {
-            const n = selected ? node(selected) : undefined;
-            if (n) openNode(n);
-          }}
-        >
-          Open
-        </ToolButton>
-        <ToolButton disabled={!selected} onClick={() => selected && startRename(selected)}>
-          Rename
-        </ToolButton>
-        <ToolButton
-          disabled={!selected}
-          danger
-          onClick={() => {
-            if (selected) void remove(selected);
-            setSelected(null);
-          }}
-        >
-          Delete
-        </ToolButton>
-      </div>
+      {/* Responsive toolbar — collapses into an overflow menu when narrow. */}
+      <Toolbar
+        actions={[
+          {
+            id: 'new-folder',
+            label: 'New Folder',
+            priority: 5,
+            onClick: () => createFolder(cwd, nextName(items.map((i) => i.name), 'New Folder')),
+          },
+          {
+            id: 'new-file',
+            label: 'New File',
+            priority: 4,
+            onClick: () => void createTextFile(cwd, nextName(items.map((i) => i.name), 'untitled.txt'), ''),
+          },
+          {
+            id: 'open',
+            label: 'Open',
+            priority: 3,
+            disabled: !selected,
+            onClick: () => {
+              const n = selected ? node(selected) : undefined;
+              if (n) openNode(n);
+            },
+          },
+          {
+            id: 'rename',
+            label: 'Rename',
+            priority: 2,
+            disabled: !selected,
+            onClick: () => selected && startRename(selected),
+          },
+          {
+            id: 'delete',
+            label: 'Delete',
+            priority: 1,
+            danger: true,
+            disabled: !selected,
+            onClick: () => {
+              if (selected) void remove(selected);
+              setSelected(null);
+            },
+          },
+        ]}
+      />
 
-      {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="flex items-center gap-1 border-b border-crypt-500 px-2 py-1 font-pixel text-base text-bone-300">
+      {/* Breadcrumb — scrolls horizontally instead of clipping. */}
+      <nav aria-label="Breadcrumb" className="flex min-w-0 shrink-0 items-center gap-1 overflow-x-auto border-b border-crypt-500 px-2 py-1 font-pixel text-base text-bone-300">
         {breadcrumb.map((n, i) => (
-          <span key={n.id} className="flex items-center gap-1">
+          <span key={n.id} className="flex shrink-0 items-center gap-1">
             {i > 0 && <span className="text-bone-500">/</span>}
             <button
               type="button"
               onClick={() => setCwd(n.id)}
-              className="hover:text-spectral-500"
+              className="shrink-0 whitespace-nowrap hover:text-spectral-500"
             >
               {n.parentId === null ? 'root' : n.name}
             </button>
@@ -308,33 +321,6 @@ function OpenWithDialog({
         ))}
       </ul>
     </Overlay>
-  );
-}
-
-function ToolButton({
-  children,
-  onClick,
-  disabled,
-  danger,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  disabled?: boolean;
-  danger?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={[
-        'rounded-sm border border-crypt-500 bg-crypt-700 px-2 py-1 font-pixel text-base bevel-out',
-        'disabled:cursor-not-allowed disabled:opacity-40',
-        danger ? 'text-bone-200 hover:bg-blood-500 hover:text-white' : 'text-bone-200 hover:bg-crypt-600',
-      ].join(' ')}
-    >
-      {children}
-    </button>
   );
 }
 

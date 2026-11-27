@@ -317,6 +317,43 @@ and image preview). The Explorer's right-click `ContextMenu` offers Open, Open w
 Rename, Delete, Duplicate, Download, and Properties — each wired to a real store action;
 `PropertiesDialog` derives its fields from a pure `nodeProperties(vfs, id)` helper.
 
+## Responsive window content
+
+To prevent toolbars and headers being clipped when a window is resized small:
+
+- `WindowFrame` keeps the title bar `shrink-0` and the body `min-h-0 flex-1
+  overflow-hidden`; each app root is `flex h-full min-h-0 flex-col` so content
+  regions shrink and scroll independently.
+- A shared `ui/Toolbar` renders as many actions as fit (by priority) and collapses
+  the rest into an accessible "More actions" (⋯) overflow menu, measured with a
+  `ResizeObserver`. Tomb Explorer uses it; its breadcrumb scrolls horizontally
+  rather than clipping. The terminal prompt truncates so its input stays visible.
+
+## DeadWave (audio)
+
+DeadWave imports audio via a prominent button, drag-and-drop, or by opening a VFS
+audio file from Tomb Explorer; it shows an empty state with guidance. Transport
+covers play/pause/stop/prev/next/seek plus volume, mute, and a repeat mode
+(off/all/one). It honors the global sound setting, surfaces unsupported/corrupted
+files via toasts, handles blocked autoplay by falling back to paused with a
+prompt, and revokes object URLs on track change/unmount.
+
+**Original demo tracks.** `core/audio/wav.ts` is a pure PCM→WAV encoder plus a tiny
+note-sequence synthesizer; `core/audio/demoTracks.ts` defines three original
+compositions (Midnight Transmission, Spectral Frequencies, Echoes from 1998) as
+note data. DeadWave synthesizes them to WAV at runtime on an explicit "Play Demo
+Track" click — no bundled binary assets, no streaming, no copyrighted material,
+and never autoplayed.
+
+## End-to-end browser tests
+
+`e2e/ghostos.spec.ts` (Playwright, Chromium) builds and previews the production
+bundle and exercises the real UI: create a file in Explorer → open in GraveNotes →
+edit → save → reload → verify persistence; GraveNotes Save As → file appears in
+Explorer; resizing Explorer keeps toolbar controls within window bounds; DeadWave
+plays a demo track after a click; Offline Spirit answers without credentials. They
+run in a dedicated CI job that installs the Chromium binary.
+
 ## Persistence design
 
 A single IndexedDB database `ghostos` (versioned) with object stores:

@@ -57,7 +57,11 @@ confirm it in a browser. See [Limitations](#limitations-and-remaining-verificati
   (`help`, `ls`, `cd`, `cat`, `mkdir`, `touch`, `rm`, `echo`, `clear`, `pwd`, `whoami`)
   with command history.
 - **Calculator** — full keyboard + button input, divide-by-zero handled gracefully.
-- **DeadWave** — a local audio player with a real-time Web Audio spectrum visualizer.
+- **DeadWave** — a local audio player: import via button or drag-and-drop (or open audio
+  from Tomb Explorer), playlist, play/pause/stop/prev/next/seek/volume/mute/repeat, a
+  real-time Web Audio spectrum visualizer, and three **original** locally-synthesized demo
+  tracks (Midnight Transmission · Spectral Frequencies · Echoes from 1998) playable with
+  one click — no streaming, no bundled audio files, never autoplayed.
 - **Settings** — toggle CRT effects, reduced motion, and sound; export/import your whole
   workspace as a JSON backup.
 - **Spirit Assistant** — an **offline help mode** by default (rule-based answers about

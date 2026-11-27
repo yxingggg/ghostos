@@ -200,3 +200,26 @@
   - Update the Gemini preset default model; keep the model field editable; don't overwrite
     a user-configured model without an explicit provider switch; update tests/placeholders.
   - _Requirements: 10.4_
+
+- [ ] 23. Responsive window content (Tomb Explorer header clipping)
+  - Shared `ui/Toolbar` with ResizeObserver-based overflow (⋯) menu; Explorer uses it;
+    breadcrumb scrolls; terminal prompt truncates; app roots use `min-h-0` flex columns so
+    content scrolls independently and controls are never clipped. Toolbar unit test +
+    Playwright viewport check. Audited all apps.
+  - _Requirements: 12.3 (responsive), 4 (shell)_
+
+- [ ] 24. DeadWave usability + original demo tracks
+  - Prominent Import Audio, drag-and-drop, VFS-open integration, empty state, playlist,
+    play/pause/stop/prev/next/seek/volume/mute/repeat, elapsed/duration/filename, autoplay
+    handling, unsupported/corrupted messaging, object-URL cleanup.
+  - Pure `core/audio/wav.ts` (WAV encoder + synth) and `core/audio/demoTracks.ts` (three
+    original compositions) synthesized at runtime; "Play Demo Track" action; never
+    autoplayed; no external/streamed/copyrighted audio. Unit tests for encoder + tracks.
+  - _Requirements: 9_
+
+- [ ] 25. Playwright end-to-end browser tests
+  - `e2e/ghostos.spec.ts` covering the create→open→edit→save→reload→persist workflow,
+    GraveNotes Save As → appears in Explorer, Explorer resize control visibility, DeadWave
+    demo playback, and Offline Spirit without credentials. Dedicated CI job installs
+    Chromium. NOT claimed to pass until an Actions run executes it.
+  - _Requirements: 15.3, 15.5_

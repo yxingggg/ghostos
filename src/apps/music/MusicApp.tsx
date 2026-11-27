@@ -4,26 +4,47 @@ import { useMusic } from '../../state/musicStore';
 import { useSettings } from '../../state/settingsStore';
 import { useVfs } from '../../state/vfsStore';
 import { useToasts } from '../../state/toastStore';
+import { DEMO_TRACKS } from '../../core/audio/demoTracks';
+import { specToWav } from '../../core/audio/wav';
 import { Visualizer } from './Visualizer';
+
+const AUDIO_EXT = /\.(mp3|wav|ogg|oga|flac|m4a|aac|weba|opus)$/i;
 
 export function MusicApp({ props }: AppComponentProps) {
   const tracks = useMusic((s) => s.tracks);
   const currentId = useMusic((s) => s.currentId);
   const playing = useMusic((s) => s.playing);
+  const volume = useMusic((s) => s.volume);
+  const muted = useMusic((s) => s.muted);
+  const repeat = useMusic((s) => s.repeat);
   const addTrack = useMusic((s) => s.addTrack);
+  const addTrackFromVfs = useMusic((s) => s.addTrackFromVfs);
+  const addDemoTrack = useMusic((s) => s.addDemoTrack);
   const removeTrack = useMusic((s) => s.removeTrack);
   const getTrackUrl = useMusic((s) => s.getTrackUrl);
   const select = useMusic((s) => s.select);
   const setPlaying = useMusic((s) => s.setPlaying);
+  const setVolume = useMusic((s) => s.setVolume);
+  const toggleMute = useMusic((s) => s.toggleMute);
+  const cycleRepeat = useMusic((s) => s.cycleRepeat);
   const next = useMusic((s) => s.next);
   const prev = useMusic((s) => s.prev);
-  const addTrackFromVfs = useMusic((s) => s.addTrackFromVfs);
-  const muted = !useSettings((s) => s.sound);
+  const soundOff = !useSettings((s) => s.sound);
   const vfsNode = useVfs((s) => s.node);
   const readBinary = useVfs((s) => s.readBinary);
   const pushToast = useToasts((s) => s.push);
 
-  // When opened from Tomb Explorer with a VFS audio file, import and play it.
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [audioEl, setAudioEl] = useState<HTMLAudioElement | null>(null);
+  const [url, setUrl] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const current = tracks.find((t) => t.id === currentId) ?? null;
+
+  // Open a VFS audio file passed from Tomb Explorer.
   const vfsFileId = typeof props?.vfsFileId === 'string' ? props.vfsFileId : null;
   useEffect(() => {
     if (!vfsFileId) return;
@@ -31,14 +52,16 @@ export function MusicApp({ props }: AppComponentProps) {
     const node = vfsNode(vfsFileId);
     if (!node || node.kind !== 'file') return;
     void readBinary(vfsFileId).then((buf) => {
-      if (cancelled || !buf) {
-        if (!buf) pushToast('That audio file is empty.', 'error');
+      if (cancelled) return;
+      if (!buf) {
+        pushToast('That audio file is empty or unreadable.', 'error');
         return;
       }
       void addTrackFromVfs(vfsFileId, node.name, buf, node.mime ?? 'audio/mpeg').then((id) => {
-        if (cancelled) return;
-        select(id);
-        setPlaying(true);
+        if (!cancelled) {
+          select(id);
+          setPlaying(true);
+        }
       });
     });
     return () => {
@@ -47,19 +70,7 @@ export function MusicApp({ props }: AppComponentProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vfsFileId]);
 
-  // Mutable ref (initialized null) so the callback ref can assign to it.
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  // Tracked in state (not just a ref) so the Visualizer re-renders and binds
-  // its analyser once the <audio> element actually mounts.
-  const [audioEl, setAudioEl] = useState<HTMLAudioElement | null>(null);
-  const [url, setUrl] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const current = tracks.find((t) => t.id === currentId) ?? null;
-
-  // Resolve a blob URL for the current track and revoke the previous one.
+  // Resolve a blob URL for the current track; revoke the previous one.
   useEffect(() => {
     let revoked: string | null = null;
     let cancelled = false;
@@ -76,7 +87,10 @@ export function MusicApp({ props }: AppComponentProps) {
         revoked = u;
       });
     } else {
-      setUrl(null);
+      setUrl((prevUrl) => {
+        if (prevUrl) URL.revokeObjectURL(prevUrl);
+        return null;
+      });
     }
     return () => {
       cancelled = true;
@@ -85,36 +99,95 @@ export function MusicApp({ props }: AppComponentProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentId]);
 
-  // Drive play/pause from the store.
+  // Drive play/pause. Autoplay may be blocked until a user gesture; if so, we
+  // fall back to paused state instead of throwing.
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
-    if (playing) void el.play().catch(() => setPlaying(false));
-    else el.pause();
-  }, [playing, url, setPlaying]);
+    if (playing) {
+      void el.play().catch(() => {
+        setPlaying(false);
+        pushToast('Press Play to start audio (the browser blocked autoplay).');
+      });
+    } else {
+      el.pause();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing, url]);
 
-  async function onAddFiles(files: FileList | null) {
+  // Apply volume/mute to the element.
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el) return;
+    el.volume = volume;
+    el.muted = muted || soundOff;
+  }, [volume, muted, soundOff, url]);
+
+  async function onAddFiles(files: FileList | File[] | null) {
     if (!files) return;
-    for (const file of Array.from(files)) {
-      const id = await addTrack(file.name, file);
-      if (!currentId) select(id);
+    const list = Array.from(files);
+    let added: string | null = null;
+    for (const file of list) {
+      if (!file.type.startsWith('audio/') && !AUDIO_EXT.test(file.name)) {
+        pushToast(`"${file.name}" is not a supported audio file.`, 'error');
+        continue;
+      }
+      try {
+        added = await addTrack(file.name, file);
+      } catch {
+        pushToast(`Could not read "${file.name}".`, 'error');
+      }
+    }
+    if (added && !currentId) select(added);
+  }
+
+  async function playDemo(def: (typeof DEMO_TRACKS)[number]) {
+    try {
+      const wav = specToWav(def.spec);
+      const id = await addDemoTrack(def.id, def.title, wav);
+      select(id);
+      setPlaying(true); // user gesture → allowed to start
+    } catch {
+      pushToast('Could not synthesize the demo track.', 'error');
     }
   }
 
+  const hasTracks = tracks.length > 0;
+
   return (
-    <div className="flex h-full flex-col bg-crypt-800">
+    <div
+      className="relative flex h-full min-h-0 flex-col bg-crypt-800"
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragOver(true);
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragOver(false);
+        void onAddFiles(e.dataTransfer.files);
+      }}
+    >
       <Visualizer audioEl={audioEl} playing={playing} />
 
-      <div className="flex items-center justify-between border-y border-crypt-500 px-3 py-1">
-        <div className="min-w-0 font-pixel text-lg text-spectral-500">
-          <span className="truncate">{current ? current.name : 'DeadWave — no track loaded'}</span>
+      {/* Header / import */}
+      <div className="flex shrink-0 flex-wrap items-center gap-2 border-y border-crypt-500 px-3 py-1.5">
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-pixel text-lg text-spectral-500">
+            {current ? current.name : 'DeadWave'}
+          </div>
+          {current && (
+            <div className="truncate font-pixel text-xs text-bone-500">
+              {current.mime || 'audio'} · {fmt(progress)} / {fmt(duration)}
+            </div>
+          )}
         </div>
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="rounded-sm border border-amethyst-600 bg-crypt-700 px-2 py-0.5 font-pixel text-base text-spectral-500 hover:bg-crypt-600 bevel-out"
+          className="shrink-0 rounded-sm border border-amethyst-600 bg-amethyst-600/40 px-3 py-1 font-pixel text-base text-bone-100 hover:bg-amethyst-600/60 bevel-out"
         >
-          + Add Audio
+          + Import Audio
         </button>
         <input
           ref={fileInputRef}
@@ -127,66 +200,136 @@ export function MusicApp({ props }: AppComponentProps) {
       </div>
 
       {/* Transport */}
-      <div className="flex items-center gap-2 px-3 py-2">
-        <TransportButton label="Previous" onClick={prev}>⏮</TransportButton>
+      <div className="flex shrink-0 flex-wrap items-center gap-2 px-3 py-2">
+        <TransportButton label="Previous" onClick={prev} disabled={!hasTracks}>⏮</TransportButton>
         <TransportButton label={playing ? 'Pause' : 'Play'} onClick={() => setPlaying(!playing)} disabled={!current}>
           {playing ? '⏸' : '▶'}
         </TransportButton>
-        <TransportButton label="Stop" onClick={() => { setPlaying(false); if (audioRef.current) audioRef.current.currentTime = 0; }} disabled={!current}>⏹</TransportButton>
-        <TransportButton label="Next" onClick={next}>⏭</TransportButton>
+        <TransportButton
+          label="Stop"
+          onClick={() => {
+            setPlaying(false);
+            if (audioRef.current) audioRef.current.currentTime = 0;
+            setProgress(0);
+          }}
+          disabled={!current}
+        >
+          ⏹
+        </TransportButton>
+        <TransportButton label="Next" onClick={next} disabled={!hasTracks}>⏭</TransportButton>
+        <TransportButton
+          label={`Repeat: ${repeat}`}
+          onClick={cycleRepeat}
+          active={repeat !== 'off'}
+        >
+          {repeat === 'one' ? '🔂' : '🔁'}
+        </TransportButton>
         <input
           type="range"
           aria-label="Seek"
           min={0}
           max={duration || 0}
+          step="any"
           value={progress}
+          disabled={!current}
           onChange={(e) => {
             const t = Number(e.target.value);
             if (audioRef.current) audioRef.current.currentTime = t;
             setProgress(t);
           }}
-          className="flex-1 accent-amethyst-500"
+          className="min-w-[6rem] flex-1 accent-amethyst-500"
         />
-        <span className="w-16 text-right font-pixel text-sm text-bone-500">
-          {fmt(progress)}/{fmt(duration)}
-        </span>
+        <TransportButton label={muted ? 'Unmute' : 'Mute'} onClick={toggleMute} active={muted}>
+          {muted ? '🔇' : '🔊'}
+        </TransportButton>
+        <input
+          type="range"
+          aria-label="Volume"
+          min={0}
+          max={1}
+          step="0.05"
+          value={muted ? 0 : volume}
+          onChange={(e) => setVolume(Number(e.target.value))}
+          className="w-20 accent-amethyst-500"
+        />
       </div>
 
-      {/* Playlist */}
-      <ul className="min-h-0 flex-1 overflow-y-auto border-t border-crypt-500">
-        {tracks.length === 0 ? (
-          <li className="grid h-full place-items-center font-pixel text-bone-500">
-            Add local audio files to summon the dead wave.
-          </li>
+      {/* Playlist / empty state */}
+      <div className="min-h-0 flex-1 overflow-y-auto border-t border-crypt-500">
+        {!hasTracks ? (
+          <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+            <p className="font-gothic text-xl text-spectral-500">DeadWave is silent.</p>
+            <p className="max-w-xs font-pixel text-base text-bone-400">
+              Import local audio with the button above, drag-and-drop files here, open an audio
+              file from Tomb Explorer — or summon an original demo track:
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {DEMO_TRACKS.map((d) => (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => void playDemo(d)}
+                  className="rounded-sm border border-spectral-600 bg-crypt-700 px-3 py-1.5 font-pixel text-base text-spectral-400 hover:bg-crypt-600 bevel-out"
+                >
+                  ▶ {d.title}
+                </button>
+              ))}
+            </div>
+            <p className="font-pixel text-xs text-bone-500">
+              Demo tracks are original synthesized compositions, generated locally — no streaming,
+              no downloads. Audio only plays after you click.
+            </p>
+          </div>
         ) : (
-          tracks.map((t) => (
-            <li key={t.id} className="flex items-center">
-              <button
-                type="button"
-                onClick={() => {
-                  select(t.id);
-                  setPlaying(true);
-                }}
-                className={[
-                  'min-w-0 flex-1 truncate px-3 py-1.5 text-left font-pixel text-base',
-                  t.id === currentId ? 'bg-amethyst-600/40 text-bone-100' : 'text-bone-300 hover:bg-crypt-700',
-                ].join(' ')}
-              >
-                {t.id === currentId && playing ? '♪ ' : ''}
-                {t.name}
-              </button>
-              <button
-                type="button"
-                aria-label={`Remove ${t.name}`}
-                onClick={() => void removeTrack(t.id)}
-                className="px-2 text-bone-500 hover:text-blood-500"
-              >
-                ✕
-              </button>
+          <ul>
+            {tracks.map((t) => (
+              <li key={t.id} className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    select(t.id);
+                    setPlaying(true);
+                  }}
+                  className={[
+                    'min-w-0 flex-1 truncate px-3 py-1.5 text-left font-pixel text-base',
+                    t.id === currentId ? 'bg-amethyst-600/40 text-bone-100' : 'text-bone-300 hover:bg-crypt-700',
+                  ].join(' ')}
+                >
+                  {t.id === currentId && playing ? '♪ ' : ''}
+                  {t.name}
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Remove ${t.name}`}
+                  onClick={() => void removeTrack(t.id)}
+                  className="px-2 text-bone-500 hover:text-blood-500"
+                >
+                  ✕
+                </button>
+              </li>
+            ))}
+            <li className="px-3 py-2">
+              <span className="font-pixel text-xs text-bone-500">Demo tracks: </span>
+              {DEMO_TRACKS.map((d) => (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => void playDemo(d)}
+                  className="mr-1 rounded-sm border border-crypt-500 bg-crypt-700 px-2 py-0.5 font-pixel text-sm text-spectral-400 hover:bg-crypt-600"
+                >
+                  ▶ {d.title}
+                </button>
+              ))}
             </li>
-          ))
+          </ul>
         )}
-      </ul>
+      </div>
+
+      {dragOver && (
+        <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center border-2 border-dashed border-spectral-500 bg-crypt-900/70 font-pixel text-xl text-spectral-500">
+          Drop audio files to import
+        </div>
+      )}
 
       {url && (
         <audio
@@ -195,10 +338,21 @@ export function MusicApp({ props }: AppComponentProps) {
             setAudioEl(el);
           }}
           src={url}
-          muted={muted}
           onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}
           onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
-          onEnded={next}
+          onError={() => pushToast('This audio file could not be played (unsupported or corrupted).', 'error')}
+          onEnded={() => {
+            if (repeat === 'one') {
+              if (audioRef.current) {
+                audioRef.current.currentTime = 0;
+                void audioRef.current.play().catch(() => setPlaying(false));
+              }
+            } else if (repeat === 'all' || tracks.length > 1) {
+              next();
+            } else {
+              setPlaying(false);
+            }
+          }}
         />
       )}
     </div>
@@ -210,11 +364,13 @@ function TransportButton({
   label,
   onClick,
   disabled,
+  active,
 }: {
   children: React.ReactNode;
   label: string;
   onClick: () => void;
   disabled?: boolean;
+  active?: boolean;
 }) {
   return (
     <button
@@ -223,7 +379,12 @@ function TransportButton({
       title={label}
       onClick={onClick}
       disabled={disabled}
-      className="grid h-8 w-8 place-items-center rounded-sm border border-crypt-500 bg-crypt-700 text-lg text-bone-100 hover:bg-crypt-600 disabled:opacity-40 bevel-out"
+      className={[
+        'grid h-8 w-8 shrink-0 place-items-center rounded-sm border text-lg bevel-out disabled:opacity-40',
+        active
+          ? 'border-amethyst-500 bg-amethyst-600/40 text-bone-100'
+          : 'border-crypt-500 bg-crypt-700 text-bone-100 hover:bg-crypt-600',
+      ].join(' ')}
     >
       {children}
     </button>

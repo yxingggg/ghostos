@@ -74,7 +74,7 @@ export function TerminalApp(_props: AppComponentProps) {
         ))}
       </div>
       <div className="flex items-center gap-2">
-        <span className="shrink-0 text-amethyst-400">{prompt}</span>
+        <span className="max-w-[60%] shrink-0 truncate text-amethyst-400">{prompt}</span>
         <input
           ref={inputRef}
           aria-label="Terminal input"
