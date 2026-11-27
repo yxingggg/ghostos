@@ -1,0 +1,29 @@
+/* Fonts for GhostOS.
+ *
+ * To keep the app fully offline with no network dependency, GhostOS does NOT
+ * import web fonts from a CDN. It relies on widely-available system fonts and a
+ * CSS rendering treatment (crisp edges, no smoothing) to evoke a pixel/CRT feel.
+ *
+ * If you want the authentic bitmap look, drop self-hosted .woff2 files into
+ * src/assets/fonts/ and uncomment the @font-face blocks below. Bundling the
+ * fonts keeps GhostOS offline-first (no external requests).
+ */
+
+/*
+@font-face {
+  font-family: 'VT323';
+  src: url('../assets/fonts/VT323-Regular.woff2') format('woff2');
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IM Fell English SC';
+  src: url('../assets/fonts/IMFellEnglishSC-Regular.woff2') format('woff2');
+  font-display: swap;
+}
+*/
+
+/* Fallback mapping so the Tailwind font tokens resolve without the web fonts. */
+:root {
+  --font-pixel: 'VT323', ui-monospace, 'Cascadia Mono', 'Courier New', monospace;
+  --font-gothic: 'IM Fell English SC', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+}

@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Core test reminder",
+      "trigger": "PostFileSave",
+      "matcher": "src/core/(?!.*\\.(test|spec)\\.tsx?$).*\\.tsx?$",
+      "action": {
+        "type": "agent",
+        "prompt": "A file under src/core was just saved. Core modules are pure logic covered by unit and property-based tests. Before considering this change complete: (1) ensure a colocated *.test.ts exists and covers the new/changed behavior, adding or updating cases (including edge cases and relevant fast-check invariant properties for WM/VFS); (2) run `npm test` for the affected module; (3) run `npm run typecheck`. Do not weaken TypeScript strictness or delete assertions to make tests pass."
+      }
+    }
+  ]
+}

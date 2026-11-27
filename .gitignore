@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dev-dist/
+coverage/
+*.tsbuildinfo
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.local
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# NOTE: The .kiro directory (specs, steering, hooks) is intentionally committed.
+# Do not add .kiro or any of its meaningful subdirectories (specs, steering,
+# hooks) to this ignore file.
+#
+# The single exception is .kiro/settings/, which holds empty, machine-local
+# session artifacts (permissions scratch files) that are not part of the project.
+.kiro/settings/

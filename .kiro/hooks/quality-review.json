@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Quality review",
+      "description": "On-demand review of recent changes against GhostOS standards: architecture layering, TypeScript strictness, fallible-result convention, and test coverage. Runs in Kiro Web via the Manual trigger.",
+      "trigger": "Manual",
+      "action": {
+        "type": "agent",
+        "prompt": "Perform a quality review of the current GhostOS changes and report concrete findings with file paths and line ranges, then stop. Check: (1) the UI \u2192 State \u2192 Core dependency direction is respected \u2014 Core (src/core/**) imports no React, DOM, IndexedDB, or window/document, and State never imports UI; (2) new apps are wired only through the app registry, with no app-specific branching in the window manager or shell; (3) no `any` is introduced, non-null assertions are avoided, and exported functions annotate their return types; (4) fallible Core operations return the `{ ok: true; value } | { ok: false; error }` discriminated result instead of throwing; (5) every changed or added core module has matching colocated unit tests, and WM/VFS invariants are covered by fast-check property tests; (6) nothing in the core app path makes a network request (only the opt-in assistant may). Do not modify code during the review \u2014 report only."
+      }
+    }
+  ]
+}
