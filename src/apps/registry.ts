@@ -9,7 +9,10 @@ export interface AppComponentProps {
 export interface AppDefinition {
   id: string;
   name: string;
+  /** Monochrome glyph (inherits currentColor) used in window title bars. */
   Icon: FC<{ className?: string }>;
+  /** Full-colour illustrated icon for desktop/start/taskbar tiles. */
+  TileIcon?: FC<{ className?: string }>;
   Component: FC<AppComponentProps>;
   defaultBounds?: Partial<Bounds>;
   /** If true, launching focuses an existing window instead of opening a new one. */

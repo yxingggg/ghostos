@@ -354,3 +354,40 @@ test('visual: capture branded desktop, start menu, and windows', async ({ page }
     }
   }
 });
+
+test('visual: capture wallpapers at multiple resolutions', async ({ page }, testInfo) => {
+  const sizes = [
+    { w: 1366, h: 768, tag: 'desktop' },
+    { w: 1024, h: 640, tag: 'laptop' },
+    { w: 768, h: 1024, tag: 'tablet' },
+  ];
+  const walls: Array<{ name: RegExp; tag: string }> = [
+    { name: /haunted castle/i, tag: 'castle' },
+    { name: /blood moon graveyard/i, tag: 'graveyard' },
+    { name: /misty haunted forest/i, tag: 'forest' },
+    { name: /supernatural void/i, tag: 'void' },
+  ];
+
+  for (const size of sizes) {
+    await page.setViewportSize({ width: size.w, height: size.h });
+    await boot(page);
+
+    // Open Settings once from the Start menu.
+    await page.getByRole('button', { name: /start menu/i }).click();
+    await page.getByRole('menu', { name: /start menu/i }).getByRole('menuitem', { name: 'Settings' }).click();
+    const settings = page.getByRole('dialog', { name: /settings/i }).first();
+    await expect(settings).toBeVisible();
+
+    for (const wall of walls) {
+      await settings.getByRole('button', { name: wall.name }).click();
+      const shot = testInfo.outputPath(`wall-${wall.tag}-${size.tag}.png`);
+      await page.screenshot({ path: shot });
+      await testInfo.attach(`wall-${wall.tag}-${size.tag}.png`, {
+        path: shot,
+        contentType: 'image/png',
+      });
+    }
+    // Reset storage so the next viewport starts fresh (welcome re-seeds).
+    await page.evaluate(() => indexedDB.deleteDatabase('ghostos'));
+  }
+});

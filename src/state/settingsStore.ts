@@ -13,7 +13,7 @@ export interface AssistantConfig {
   model?: string;
 }
 
-export type WallpaperId = 'crypt' | 'bloodmoon' | 'forest' | 'void';
+export type WallpaperId = 'castle' | 'graveyard' | 'forest' | 'void';
 
 export interface Settings {
   crt: boolean;
@@ -30,15 +30,25 @@ export const defaultSettings: Settings = {
   sound: false, // sound is opt-in
   assistant: { enabled: false, provider: 'openai' },
   theme: 'gothic',
-  wallpaper: 'crypt',
+  wallpaper: 'castle', // Haunted Castle is the default for new users.
 };
 
-export const WALLPAPERS: Array<{ id: WallpaperId; name: string; className: string }> = [
-  { id: 'crypt', name: 'Crypt', className: 'wall-crypt' },
-  { id: 'bloodmoon', name: 'Blood Moon', className: 'wall-bloodmoon' },
-  { id: 'forest', name: 'Haunted Forest', className: 'wall-forest' },
-  { id: 'void', name: 'Amethyst Void', className: 'wall-void' },
+export const WALLPAPERS: Array<{ id: WallpaperId; name: string }> = [
+  { id: 'castle', name: 'Haunted Castle' },
+  { id: 'graveyard', name: 'Blood Moon Graveyard' },
+  { id: 'forest', name: 'Misty Haunted Forest' },
+  { id: 'void', name: 'Supernatural Void' },
 ];
+
+/** Migrate legacy wallpaper ids so existing users keep a valid selection. */
+export function normalizeWallpaper(id: unknown): WallpaperId {
+  const legacy: Record<string, WallpaperId> = { crypt: 'castle', bloodmoon: 'graveyard' };
+  if (typeof id === 'string') {
+    if (id === 'castle' || id === 'graveyard' || id === 'forest' || id === 'void') return id;
+    if (legacy[id]) return legacy[id];
+  }
+  return 'castle';
+}
 
 interface SettingsStore extends Settings {
   hydrated: boolean;
@@ -59,6 +69,7 @@ function persist(state: Settings): void {
     sound: state.sound,
     assistant,
     theme: state.theme,
+    wallpaper: state.wallpaper,
   });
 }
 
@@ -74,6 +85,7 @@ export const useSettings = create<SettingsStore>((set, get) => ({
         ...defaultSettings,
         ...stored,
         assistant: { ...defaultSettings.assistant, ...(stored.assistant ?? {}) },
+        wallpaper: normalizeWallpaper(stored.wallpaper),
         hydrated: true,
       });
     } else {

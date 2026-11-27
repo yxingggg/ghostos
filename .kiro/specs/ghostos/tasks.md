@@ -283,6 +283,22 @@
     architecture rewrite.
   - _Requirements: 11 (theme/CRT), 12 (a11y/responsive), 13 (sound), 5.2 (restore)_
 
+- [ ] 29. Aesthetic redesign (scene wallpapers, icons, layout, CRT)
+  - Four detailed original SVG scene wallpapers with layered depth (Haunted Castle [default],
+    Blood Moon Graveyard, Misty Haunted Forest, Supernatural Void) rendered full-bleed
+    (src/assets/wallpapers.tsx, src/ui/Wallpaper.tsx); real rendered thumbnails in Settings.
+    Legacy wallpaper ids migrated so existing users keep a valid selection.
+  - Distinctive full-colour illustrated app icons (src/assets/appIcons.tsx) replacing the
+    generic gradient tiles; monochrome glyphs retained for window title bars.
+  - Prominent desktop branding (GhostOS logo + Wisp mascot watermark).
+  - Fixed desktop icon clipping/wrapping: column-flow grid bounded above the taskbar with
+    auto-fill rows and larger spacing.
+  - CRT intensity reduced significantly (fainter, wider scanlines; softer vignette; 0.6 opacity).
+  - Playwright screenshots of each wallpaper at multiple resolutions (desktop/laptop/tablet)
+    plus desktop/start-menu/windows.
+  - Preserves functionality and user preferences (wallpaper now persists correctly).
+  - _Requirements: 11.1, 11.2, 11.3, 11.5, 12.3_
+
 > Verification (CI run on commit ed4fb38): build-and-test green — 160 unit/integration/
 > property tests across 20 files, type-check, lint, production build; e2e job green — 5
 > Playwright tests passed in real Chromium (create→open→edit→save→reload→persist;

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AppComponentProps } from '../registry';
 import { useSettings, WALLPAPERS } from '../../state/settingsStore';
+import { WallpaperThumb } from '../../ui/Wallpaper';
 import { exportAll, importAll } from '../../state/persist';
 import { useToasts } from '../../state/toastStore';
 import {
@@ -89,8 +90,8 @@ export function SettingsApp({ props }: AppComponentProps) {
           onChange={() => toggle('reducedMotion')}
         />
         <div>
-          <span className="mb-1 block text-bone-300">Wallpaper</span>
-          <div className="flex flex-wrap gap-2">
+          <span className="mb-2 block text-bone-300">Wallpaper</span>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {WALLPAPERS.map((w) => (
               <button
                 key={w.id}
@@ -99,13 +100,15 @@ export function SettingsApp({ props }: AppComponentProps) {
                 aria-pressed={wallpaper === w.id}
                 onClick={() => set('wallpaper', w.id)}
                 className={[
-                  'h-14 w-20 rounded-md border-2 text-left',
-                  w.className,
+                  'overflow-hidden rounded-md border-2 text-left transition-transform hover:-translate-y-0.5',
                   wallpaper === w.id ? 'border-spectral-500 shadow-glow-sm' : 'border-crypt-500',
                 ].join(' ')}
                 title={w.name}
               >
-                <span className="m-1 inline-block rounded bg-black/40 px-1 font-pixel text-[11px] text-bone-100">
+                <span className="relative block h-16 w-full">
+                  <WallpaperThumb id={w.id} />
+                </span>
+                <span className="block bg-crypt-900/80 px-1.5 py-0.5 font-pixel text-[13px] text-bone-100">
                   {w.name}
                 </span>
               </button>

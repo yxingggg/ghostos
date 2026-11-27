@@ -86,16 +86,19 @@ body {
   inset: 0;
   pointer-events: none;
   z-index: 9999;
+  /* Significantly reduced intensity: faint, wider-spaced scanlines and a soft
+     vignette so the wallpaper art stays crisp and readable. */
   background:
     repeating-linear-gradient(
       0deg,
-      rgba(0, 0, 0, 0.18) 0px,
-      rgba(0, 0, 0, 0.18) 1px,
+      rgba(0, 0, 0, 0.06) 0px,
+      rgba(0, 0, 0, 0.06) 1px,
       transparent 1px,
-      transparent 3px
+      transparent 4px
     ),
-    radial-gradient(circle at center, transparent 55%, rgba(0, 0, 0, 0.45) 100%);
+    radial-gradient(circle at center, transparent 68%, rgba(0, 0, 0, 0.3) 100%);
   mix-blend-mode: multiply;
+  opacity: 0.6;
 }
 
 .crt-glow {

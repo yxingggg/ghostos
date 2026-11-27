@@ -41,9 +41,10 @@ confirm it in a browser. See [Limitations](#limitations-and-remaining-verificati
 
 ## Features
 
-- **Premium haunted look** — an original GhostOS logo and ghost mascot ("Wisp"), colourful
-  app icon tiles, four selectable CSS/SVG gothic wallpapers, polished window chrome, and
-  smooth reduced-motion-aware animations.
+- **Premium haunted look** — an original GhostOS logo and ghost mascot ("Wisp"), distinctive
+  illustrated app icons, four detailed original SVG scene wallpapers (Haunted Castle,
+  Blood Moon Graveyard, Misty Haunted Forest, Supernatural Void — with layered depth: moon,
+  stars, fog, silhouettes), polished window chrome, and smooth reduced-motion-aware animations.
 - **First-launch welcome** — a branded intro that seeds sample files into your filesystem;
   shown once.
 - **Ghost Memory** — your desktop, files, notes, and open windows are restored automatically

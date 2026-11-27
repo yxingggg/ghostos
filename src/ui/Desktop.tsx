@@ -8,7 +8,9 @@ import { StartMenu } from './StartMenu';
 import { Toasts } from './Toasts';
 import { CrtOverlay } from './CrtOverlay';
 import { WelcomeDialog } from './WelcomeDialog';
-import { useSettings, WALLPAPERS } from '../state/settingsStore';
+import { Wallpaper } from './Wallpaper';
+import { GhostLogo, GhostMascot } from '../assets/brand';
+import { useSettings, prefersReducedMotion } from '../state/settingsStore';
 import { playSfx } from '../sound/sfx';
 
 function useCoarsePointer(): boolean {
@@ -31,7 +33,8 @@ export function Desktop() {
   const focusedId = useWm((s) => s.state.focusedId);
   const sound = useSettings((s) => s.sound);
   const wallpaper = useSettings((s) => s.wallpaper);
-  const wallClass = WALLPAPERS.find((w) => w.id === wallpaper)?.className ?? 'wall-crypt';
+  const reducedMotion = useSettings((s) => s.reducedMotion);
+  const floatMascot = !prefersReducedMotion(reducedMotion);
   const desktopApps = getApps().filter((a) => a.desktop !== false);
   const [selected, setSelected] = useState<string | null>(null);
   const [activeIcon, setActiveIcon] = useState(0);
@@ -64,19 +67,35 @@ export function Desktop() {
   return (
     <div
       ref={rootRef}
-      className={`${wallClass} relative h-full w-full overflow-hidden`}
+      className="relative h-full w-full overflow-hidden bg-crypt-900"
       onMouseDown={(e) => {
-        if (e.target === rootRef.current) {
+        if (e.target === rootRef.current || (e.target as HTMLElement).dataset.desktopbg === 'true') {
           setSelected(null);
           setStartOpen(false);
         }
       }}
     >
-      {/* Desktop icon grid */}
+      <Wallpaper id={wallpaper} />
+      {/* Click-catcher over the wallpaper so clicking empty desktop deselects. */}
+      <div data-desktopbg="true" className="absolute inset-0" />
+
+      {/* Prominent branding watermark (bottom-right, non-interactive). */}
+      <div className="pointer-events-none absolute bottom-14 right-5 z-0 flex items-end gap-3 opacity-80">
+        <div className="text-right">
+          <GhostLogo className="justify-end text-3xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" showMascot={false} />
+          <p className="font-pixel text-sm text-bone-300 [text-shadow:0_1px_4px_rgba(0,0,0,0.9)]">
+            a haunted desktop, reborn
+          </p>
+        </div>
+        <GhostMascot className="h-16 w-16 drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]" float={floatMascot} />
+      </div>
+
+      {/* Desktop icon grid — column-flow that wraps within the available height
+          (above the taskbar) so icons never clip behind it. */}
       <div
         role="grid"
         aria-label="Desktop icons"
-        className="absolute left-2 top-2 grid grid-flow-col grid-rows-[repeat(6,auto)] content-start gap-1"
+        className="absolute left-3 top-3 z-10 grid max-h-[calc(100%-4rem)] grid-flow-col grid-rows-[repeat(auto-fill,minmax(5.5rem,max-content))] content-start gap-2"
         onKeyDown={(e) => {
           if (e.key === 'ArrowDown') {
             e.preventDefault();
