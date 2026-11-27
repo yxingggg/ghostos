@@ -18,7 +18,11 @@ export function AppIconTile({
 
   if (app.TileIcon) {
     const Tile = app.TileIcon;
-    return <Tile className={`${box} drop-shadow`} />;
+    // `block shrink-0` makes the size utilities actually constrain the SVG. The
+    // TileIcon wraps its SVG in a <span> (inline by default), on which h-*/w-*
+    // have no effect; forcing a block box here keeps the tile at the intended
+    // size so it never pushes the desktop label out of its cell.
+    return <Tile className={`block shrink-0 ${box} drop-shadow`} />;
   }
 
   const accent = app.accent ?? DEFAULT_ACCENT;
