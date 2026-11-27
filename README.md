@@ -110,13 +110,28 @@ confirm it in a browser. See [Limitations](#limitations-and-remaining-verificati
   lives in the player's library (see [Limitations](#limitations-and-remaining-verification)).
 - **Settings** — toggle CRT effects, reduced motion, and sound; export/import your whole
   workspace as a JSON backup.
-- **Spirit Assistant** — an **offline help mode** by default (rule-based answers about
-  GhostOS from local docs, with clickable suggested questions; no API key, no network, not
-  a generative model), plus an **optional online AI mode** with provider presets (OpenAI,
-  Google Gemini, custom OpenAI-compatible), a Test Connection button, and graceful error
-  handling. Online mode is opt-in; your API key stays in session memory (never saved or
-  exported), is never sent over non-HTTPS, and only your messages are sent — never your
-  files or notes.
+- **Spirit Assistant** — two clearly separated modes. The default **offline help mode** is
+  rule-based: it answers questions about GhostOS from local documentation with clickable
+  suggested questions, needs no API key or network, and explicitly tells you it is **not** a
+  generative AI model. The **optional online AI mode** is opt-in and uses a provider you
+  configure (OpenAI, Google Gemini, or a custom OpenAI-compatible endpoint) with a Test
+  Connection button and graceful error handling. In online mode your requests leave your
+  device; your API key stays in session memory (never saved or exported), is never sent over
+  non-HTTPS, and only your messages are sent — never your files or notes.
+
+  <table>
+    <tr>
+      <td width="50%" valign="top">
+        <img src="docs/screenshots/spirit-offline.png" alt="Spirit Assistant on the 'Offline Spirit' tab. The assistant states it answers from local documentation, is not a generative AI model, and works with no internet. It answers 'What terminal commands are available?' by listing the Phantom Terminal commands and noting it never runs real system code, with suggested questions and an 'Ask about GhostOS…' input." />
+        <br /><sub><b>Offline help mode (default)</b> — rule-based answers from local docs; no network, not a generative model.</sub>
+      </td>
+      <td width="50%" valign="top">
+        <img src="docs/screenshots/spirit-ai.png" alt="Spirit Assistant on the 'Online AI' tab. A header reads 'Google Gemini · online · requests leave your device' with a Settings link. It answers a general question, 'how to save a document', with a detailed generative response, and the input reads 'Message the AI…'." />
+        <br /><sub><b>Optional online AI (opt-in)</b> — your configured provider (here Google Gemini); requests leave your device, API key stays session-only.</sub>
+      </td>
+    </tr>
+  </table>
+
 - **Offline-first** — a service worker precaches the app shell so it runs without a
   network. All assets are bundled or generated locally. A taskbar indicator tells you your
   connectivity honestly — and reassures you that losing the network changes nothing for
