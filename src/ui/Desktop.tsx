@@ -90,13 +90,18 @@ export function Desktop() {
         <GhostMascot className="h-16 w-16 drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]" float={floatMascot} />
       </div>
 
-      {/* Desktop icon grid — compact icons in a column-flow grid bounded well
-          above the taskbar (h-11 = 2.75rem). It wraps into new columns as the
-          viewport shrinks, so every icon and label stays visible. */}
+      {/* Desktop icon grid — column-flow grid bounded above the taskbar
+          (taskbar is 40px; we reserve 3.5rem total clearance). Each cell is a
+          fixed 6rem-wide × 6rem-tall track: wide enough that the longest single
+          app word fits on one line, tall enough to reserve two full label lines
+          with no vertical overlap into the cell below. `grid-rows-[auto-fill,6rem]`
+          computes capacity from the real cell height against the available
+          desktop height and wraps into a new column when a column is full, so
+          every icon and its complete label stays visible and non-overlapping. */}
       <div
         role="grid"
         aria-label="Desktop icons"
-        className="absolute left-2 top-2 grid max-h-[calc(100%-4.5rem)] auto-cols-max grid-flow-col grid-rows-[repeat(auto-fill,4.75rem)] content-start justify-start gap-x-1 gap-y-0.5"
+        className="absolute left-2 top-2 grid max-h-[calc(100%-3.5rem)] auto-cols-max grid-flow-col grid-rows-[repeat(auto-fill,6rem)] content-start justify-start gap-x-1 gap-y-1"
         onKeyDown={(e) => {
           if (e.key === 'ArrowDown') {
             e.preventDefault();

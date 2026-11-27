@@ -415,3 +415,95 @@ test('visual regression: every desktop icon stays above the taskbar', async ({ p
     }
   }
 });
+
+// --- Regression: desktop icon labels must render fully, without clipping or overlap ---
+
+interface Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+function overlaps(a: Rect, b: Rect): boolean {
+  // Treat a sub-pixel touch as non-overlapping; require real area intersection.
+  const EPS = 0.5;
+  return (
+    a.x < b.x + b.width - EPS &&
+    a.x + a.width - EPS > b.x &&
+    a.y < b.y + b.height - EPS &&
+    a.y + a.height - EPS > b.y
+  );
+}
+
+for (const vp of [
+  { w: 1440, h: 900, tag: 'desktop' },
+  { w: 1024, h: 768, tag: 'laptop' },
+  { w: 768, h: 1024, tag: 'tablet' },
+]) {
+  test(`icon labels render fully without clipping or overlap (${vp.tag} ${vp.w}x${vp.h})`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: vp.w, height: vp.h });
+    await boot(page);
+
+    const grid = page.getByRole('grid', { name: /desktop icons/i });
+    const cells = await grid.getByRole('gridcell').all();
+    expect(cells.length).toBeGreaterThan(0);
+
+    const cellRects: Rect[] = [];
+
+    for (const cell of cells) {
+      const cellBox = await cell.boundingBox();
+      expect(cellBox).not.toBeNull();
+      if (!cellBox) continue;
+      cellRects.push(cellBox);
+
+      // The label span's full text must match the accessible name (nothing
+      // dropped) and must not overflow its own box.
+      const expectedName = (await cell.getAttribute('aria-label')) ?? '';
+      const label = cell.getByTestId('desktop-icon-label');
+
+      const metrics = await label.evaluate((el) => {
+        const node = el as HTMLElement;
+        return {
+          text: (node.textContent ?? '').trim(),
+          scrollWidth: node.scrollWidth,
+          clientWidth: node.clientWidth,
+          scrollHeight: node.scrollHeight,
+          clientHeight: node.clientHeight,
+        };
+      });
+
+      // Full name is rendered (no truncation/ellipsis of the content).
+      expect(metrics.text).toBe(expectedName);
+
+      // No clipping: content fits within the label box in both axes (allow 1px
+      // for sub-pixel rounding).
+      expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth + 1);
+      expect(metrics.scrollHeight).toBeLessThanOrEqual(metrics.clientHeight + 1);
+
+      // The label box stays within its cell's horizontal bounds (no sideways spill).
+      const labelBox = await label.boundingBox();
+      expect(labelBox).not.toBeNull();
+      if (labelBox) {
+        expect(labelBox.x).toBeGreaterThanOrEqual(cellBox.x - 1);
+        expect(labelBox.x + labelBox.width).toBeLessThanOrEqual(cellBox.x + cellBox.width + 1);
+        expect(labelBox.y + labelBox.height).toBeLessThanOrEqual(cellBox.y + cellBox.height + 1);
+      }
+    }
+
+    // No two icon cells overlap each other.
+    for (let i = 0; i < cellRects.length; i += 1) {
+      for (let j = i + 1; j < cellRects.length; j += 1) {
+        const a = cellRects[i];
+        const b = cellRects[j];
+        if (!a || !b) continue;
+        expect(
+          overlaps(a, b),
+          `icon cell ${i} overlaps cell ${j} at ${vp.tag}`,
+        ).toBe(false);
+      }
+    }
+  });
+}

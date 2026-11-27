@@ -89,8 +89,7 @@ export function registerBuiltinApps(): void {
     Component: ImageViewerApp,
     TileIcon: ImageAppIcon,
     defaultBounds: { width: 480, height: 420 },
-    // Launched only by opening an image file; not shown as a desktop icon.
-    desktop: false,
+    // Also launched by opening an image file; shown on the desktop too.
     accent: { from: '#357a72', to: '#6fcabf', glyph: '#0e0b16' },
   });
   registerApp({
